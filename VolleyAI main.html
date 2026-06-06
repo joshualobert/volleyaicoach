@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VolleyAI — Upload Video</title>
+  <title>VolleyAI</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -12,394 +12,323 @@
       background: #0d0f14;
       color: #e8eaf0;
       min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 48px 16px 80px;
     }
 
-    header {
+    /* ── Each view is hidden by default ── */
+    .view { display: none; flex-direction: column; align-items: center;
+            justify-content: center; min-height: 100vh; padding: 40px 16px; }
+    .view.active { display: flex; }
+
+    /* ── Shared ── */
+    .wordmark {
+      font-size: 11px; font-weight: 700; letter-spacing: .2em;
+      text-transform: uppercase; color: #5b8af5; margin-bottom: 10px;
       text-align: center;
-      margin-bottom: 48px;
     }
-
-    header .wordmark {
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: #5b8af5;
-      margin-bottom: 8px;
-    }
-
-    header h1 {
-      font-size: 28px;
-      font-weight: 700;
-      color: #ffffff;
-    }
-
-    header p {
-      margin-top: 8px;
-      font-size: 14px;
-      color: #6b7280;
-    }
+    h1 { font-size: 26px; font-weight: 700; color: #fff; text-align: center; }
+    .sub { font-size: 14px; color: #6b7280; margin-top: 6px; text-align: center; }
 
     .card {
-      background: #13161e;
-      border: 1px solid #1e2330;
-      border-radius: 16px;
-      padding: 40px;
-      width: 100%;
-      max-width: 560px;
-    }
-
-    .field {
-      margin-bottom: 24px;
+      background: #13161e; border: 1px solid #1e2330;
+      border-radius: 16px; padding: 36px;
+      width: 100%; max-width: 500px; margin-top: 32px;
     }
 
     label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 0.04em;
-      color: #9ca3af;
-      margin-bottom: 8px;
-      text-transform: uppercase;
+      display: block; font-size: 11px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: #9ca3af; margin-bottom: 8px;
     }
 
-    input[type="text"],
-    input[type="date"] {
-      width: 100%;
-      padding: 12px 16px;
-      background: #0d0f14;
-      border: 1px solid #1e2330;
-      border-radius: 10px;
-      color: #e8eaf0;
-      font-size: 15px;
-      outline: none;
-      transition: border-color 0.15s;
+    /* ── Drop zone ── */
+    .drop {
+      border: 2px dashed #1e2330; border-radius: 14px;
+      padding: 48px 24px; text-align: center; cursor: pointer;
+      transition: border-color .15s, background .15s; position: relative;
     }
-
-    input[type="text"]::placeholder { color: #3d4455; }
-
-    input[type="date"]::-webkit-calendar-picker-indicator {
-      filter: invert(0.4);
-      cursor: pointer;
-    }
-
-    input[type="text"]:focus,
-    input[type="date"]:focus {
-      border-color: #5b8af5;
-    }
-
-    /* Drop zone */
-    .drop-zone {
-      border: 2px dashed #1e2330;
-      border-radius: 14px;
-      padding: 48px 24px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
-      position: relative;
-    }
-
-    .drop-zone:hover,
-    .drop-zone.drag-over {
-      border-color: #5b8af5;
-      background: rgba(91, 138, 245, 0.04);
-    }
-
-    .drop-zone input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-      width: 100%;
-      height: 100%;
-    }
+    .drop:hover, .drop.over { border-color: #5b8af5; background: rgba(91,138,245,.04); }
+    .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
 
     .drop-icon {
-      width: 48px;
-      height: 48px;
-      margin: 0 auto 16px;
-      background: #1a1f2e;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      width: 48px; height: 48px; margin: 0 auto 14px;
+      background: #1a1f2e; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .drop-icon svg { width: 24px; height: 24px; stroke: #5b8af5; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+    .drop-title { font-size: 15px; font-weight: 600; color: #d1d5db; margin-bottom: 4px; }
+    .drop-hint  { font-size: 13px; color: #4b5563; }
+    .drop-hint span { color: #5b8af5; }
+
+    /* File chip */
+    .chip {
+      display: none; align-items: center; gap: 12px;
+      background: #0d0f14; border: 1px solid #1e2330;
+      border-radius: 10px; padding: 12px 16px; margin-top: 14px;
+    }
+    .chip.show { display: flex; }
+    .chip-name { font-size: 14px; font-weight: 500; flex: 1; min-width: 0;
+                 white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chip-size { font-size: 12px; color: #4b5563; }
+    .chip-x    { background: none; border: none; color: #4b5563; cursor: pointer;
+                 font-size: 18px; line-height: 1; padding: 0 2px; }
+    .chip-x:hover { color: #ef4444; }
+
+    /* Button */
+    .btn {
+      display: block; width: 100%; margin-top: 24px; padding: 14px;
+      background: #5b8af5; border: none; border-radius: 10px;
+      color: #fff; font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: background .15s, opacity .15s;
+    }
+    .btn:hover    { background: #4a79e4; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    .error {
+      display: none; margin-top: 14px; padding: 12px 16px;
+      background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.2);
+      border-radius: 10px; font-size: 13px; color: #f87171;
+    }
+    .error.show { display: block; }
+
+    /* ── Analysing view ── */
+    #view-analyse { text-align: center; }
+
+    .spinner {
+      width: 64px; height: 64px; border-radius: 50%;
+      border: 3px solid #1e2330; border-top-color: #5b8af5;
+      animation: spin .85s linear infinite; margin: 0 auto 28px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .prog-track {
+      width: 100%; max-width: 380px; height: 6px;
+      background: #1e2330; border-radius: 99px; overflow: hidden;
+      margin: 28px auto 10px;
+    }
+    .prog-bar {
+      height: 100%; background: #5b8af5; border-radius: 99px;
+      width: 0%; transition: width .4s ease;
+    }
+    .prog-pct { font-size: 13px; color: #6b7280; }
+
+    /* ── Results view ── */
+    #view-result { justify-content: flex-start; padding-top: 48px; }
+
+    video {
+      width: 100%; max-width: 720px;
+      border-radius: 14px; background: #000;
+      margin-top: 24px; display: block;
     }
 
-    .drop-icon svg {
-      width: 24px;
-      height: 24px;
-      stroke: #5b8af5;
-      fill: none;
-      stroke-width: 1.8;
-      stroke-linecap: round;
-      stroke-linejoin: round;
+    .stats-row {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      width: 100%; max-width: 720px; margin-top: 16px;
     }
-
-    .drop-title {
-      font-size: 15px;
-      font-weight: 600;
-      color: #d1d5db;
-      margin-bottom: 4px;
+    .stat {
+      flex: 1; min-width: 120px;
+      background: #13161e; border: 1px solid #1e2330;
+      border-radius: 10px; padding: 14px 16px;
     }
+    .stat-lbl { font-size: 11px; font-weight: 700; letter-spacing: .06em;
+                text-transform: uppercase; color: #6b7280; margin-bottom: 6px; }
+    .stat-val { font-size: 20px; font-weight: 700; color: #e8eaf0; }
+    .stat-unit { font-size: 12px; color: #4b5563; font-weight: 400; margin-left: 3px; }
 
-    .drop-sub {
-      font-size: 13px;
-      color: #4b5563;
+    .again-btn {
+      margin-top: 20px; padding: 11px 26px;
+      background: transparent; border: 1px solid #1e2330;
+      border-radius: 10px; color: #6b7280; font-size: 14px;
+      cursor: pointer; transition: border-color .15s, color .15s;
     }
-
-    .drop-sub span {
-      color: #5b8af5;
-      font-weight: 500;
-    }
-
-    /* File chosen state */
-    .file-preview {
-      display: none;
-      align-items: center;
-      gap: 12px;
-      background: #0d0f14;
-      border: 1px solid #1e2330;
-      border-radius: 10px;
-      padding: 14px 16px;
-      margin-top: 16px;
-    }
-
-    .file-preview.visible { display: flex; }
-
-    .file-preview svg {
-      flex-shrink: 0;
-      width: 20px;
-      height: 20px;
-      stroke: #5b8af5;
-      fill: none;
-      stroke-width: 1.8;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-
-    .file-info { flex: 1; min-width: 0; }
-
-    .file-name {
-      font-size: 14px;
-      font-weight: 500;
-      color: #e8eaf0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .file-size { font-size: 12px; color: #4b5563; margin-top: 2px; }
-
-    .remove-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: #4b5563;
-      padding: 4px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      transition: color 0.15s;
-    }
-
-    .remove-btn:hover { color: #ef4444; }
-
-    .remove-btn svg {
-      width: 16px;
-      height: 16px;
-      stroke: currentColor;
-      fill: none;
-      stroke-width: 2;
-      stroke-linecap: round;
-    }
-
-    /* Submit */
-    .submit-btn {
-      width: 100%;
-      margin-top: 32px;
-      padding: 14px;
-      background: #5b8af5;
-      border: none;
-      border-radius: 10px;
-      color: #ffffff;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s, opacity 0.15s;
-    }
-
-    .submit-btn:hover { background: #4a79e4; }
-    .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    /* Success banner */
-    .success {
-      display: none;
-      align-items: center;
-      gap: 10px;
-      background: rgba(34, 197, 94, 0.1);
-      border: 1px solid rgba(34, 197, 94, 0.25);
-      border-radius: 10px;
-      padding: 14px 16px;
-      margin-top: 16px;
-      font-size: 14px;
-      color: #4ade80;
-    }
-
-    .success.visible { display: flex; }
-
-    .success svg {
-      flex-shrink: 0;
-      width: 18px;
-      height: 18px;
-      stroke: #4ade80;
-      fill: none;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
+    .again-btn:hover { border-color: #5b8af5; color: #5b8af5; }
   </style>
 </head>
 <body>
 
-  <header>
-    <div class="wordmark">VolleyAI</div>
-    <h1>Upload Video</h1>
-    <p>Add a match or practice session for AI analysis.</p>
-  </header>
+<!-- ════════════════ VIEW 1: UPLOAD ════════════════ -->
+<div id="view-upload" class="view active">
+  <div class="wordmark">VolleyAI</div>
+  <h1>Upload a video</h1>
+  <p class="sub">The ball will be tracked and highlighted in the output.</p>
 
   <div class="card">
-    <form id="uploadForm" novalidate>
+    <label>Video file</label>
 
-      <div class="field">
-        <label for="sessionName">Session name</label>
-        <input
-          type="text"
-          id="sessionName"
-          name="sessionName"
-          placeholder="e.g. Practice Session 1 · Game vs France"
-          autocomplete="off"
-        />
+    <div class="drop" id="drop">
+      <input type="file" id="fileInput" accept="video/*" />
+      <div class="drop-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
       </div>
+      <div class="drop-title">Drop video here</div>
+      <div class="drop-hint">or <span>browse</span> &nbsp;·&nbsp; MP4, MOV, AVI, MKV</div>
+    </div>
 
-      <div class="field">
-        <label for="sessionDate">Date</label>
-        <input type="date" id="sessionDate" name="sessionDate" />
-      </div>
+    <div class="chip" id="chip">
+      <span class="chip-name" id="chipName"></span>
+      <span class="chip-size" id="chipSize"></span>
+      <button class="chip-x" id="chipX" type="button">×</button>
+    </div>
 
-      <div class="field">
-        <label>Video file</label>
-        <div class="drop-zone" id="dropZone">
-          <input
-            type="file"
-            id="videoFile"
-            name="videoFile"
-            accept="video/*"
-          />
-          <div class="drop-icon">
-            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          </div>
-          <div class="drop-title">Drop your video here</div>
-          <div class="drop-sub">or <span>browse files</span> &nbsp;·&nbsp; MP4, MOV, AVI, MKV</div>
-        </div>
-
-        <div class="file-preview" id="filePreview">
-          <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="3"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
-          <div class="file-info">
-            <div class="file-name" id="fileName"></div>
-            <div class="file-size" id="fileSize"></div>
-          </div>
-          <button type="button" class="remove-btn" id="removeFile" aria-label="Remove file">
-            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-      </div>
-
-      <button type="submit" class="submit-btn" id="submitBtn">Upload &amp; Analyse</button>
-
-      <div class="success" id="successMsg">
-        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-        Video uploaded successfully — analysis will begin shortly.
-      </div>
-
-    </form>
+    <button class="btn" id="uploadBtn" disabled>Analyse video</button>
+    <div class="error" id="errMsg"></div>
   </div>
+</div>
 
-  <script>
-    const dropZone   = document.getElementById('dropZone');
-    const fileInput  = document.getElementById('videoFile');
-    const filePreview = document.getElementById('filePreview');
-    const fileName   = document.getElementById('fileName');
-    const fileSize   = document.getElementById('fileSize');
-    const removeBtn  = document.getElementById('removeFile');
-    const submitBtn  = document.getElementById('submitBtn');
-    const successMsg = document.getElementById('successMsg');
+<!-- ════════════════ VIEW 2: ANALYSING ════════════════ -->
+<div id="view-analyse" class="view">
+  <div class="spinner"></div>
+  <div class="wordmark">VolleyAI</div>
+  <h1>Analysing…</h1>
+  <p class="sub" id="statusLabel">Processing your video</p>
+  <div class="prog-track"><div class="prog-bar" id="progBar"></div></div>
+  <div class="prog-pct" id="progPct">0%</div>
+</div>
 
-    function formatBytes(bytes) {
-      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+<!-- ════════════════ VIEW 3: RESULT ════════════════ -->
+<div id="view-result" class="view">
+  <div class="wordmark">VolleyAI</div>
+  <h1>Tracking complete</h1>
+  <p class="sub">Ball highlighted in red · Players outlined in blue</p>
+
+  <video id="resultVideo" controls playsinline></video>
+
+  <div class="stats-row" id="statsRow"></div>
+
+  <button class="again-btn" id="againBtn">Analyse another video</button>
+</div>
+
+<script>
+  // ── helpers ──────────────────────────────────────────────────────────────
+  const $ = id => document.getElementById(id);
+
+  function show(id) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    $(id).classList.add('active');
+  }
+
+  function fmtBytes(b) {
+    return b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(1) + ' MB';
+  }
+
+  function showErr(msg) {
+    $('errMsg').textContent = msg;
+    $('errMsg').classList.add('show');
+  }
+
+  // ── file selection ───────────────────────────────────────────────────────
+  let selectedFile = null;
+
+  function setFile(file) {
+    selectedFile = file;
+    $('chipName').textContent = file.name;
+    $('chipSize').textContent = fmtBytes(file.size);
+    $('chip').classList.add('show');
+    $('uploadBtn').disabled = false;
+    $('errMsg').classList.remove('show');
+  }
+
+  function clearFile() {
+    selectedFile = null;
+    $('fileInput').value = '';
+    $('chip').classList.remove('show');
+    $('uploadBtn').disabled = true;
+  }
+
+  $('fileInput').addEventListener('change', e => { if (e.target.files[0]) setFile(e.target.files[0]); });
+  $('chipX').addEventListener('click', clearFile);
+
+  const drop = $('drop');
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+  ['dragleave','dragend'].forEach(ev => drop.addEventListener(ev, () => drop.classList.remove('over')));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); drop.classList.remove('over');
+    const f = e.dataTransfer.files[0];
+    if (f && f.type.startsWith('video/')) setFile(f);
+  });
+
+  // ── upload & poll ────────────────────────────────────────────────────────
+  $('uploadBtn').addEventListener('click', async () => {
+    if (!selectedFile) return;
+
+    show('view-analyse');
+    setProgress(0, 'Uploading video…');
+
+    const fd = new FormData();
+    fd.append('video', selectedFile);
+
+    let jobId;
+    try {
+      const res = await fetch('/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Upload failed');
+      jobId = data.job_id;
+    } catch (err) {
+      showErr(err.message);
+      show('view-upload');
+      return;
     }
 
-    function showFile(file) {
-      fileName.textContent = file.name;
-      fileSize.textContent = formatBytes(file.size);
-      filePreview.classList.add('visible');
-    }
+    setProgress(5, 'Detecting ball and players…');
 
-    function clearFile() {
-      fileInput.value = '';
-      filePreview.classList.remove('visible');
-    }
+    const poll = setInterval(async () => {
+      try {
+        const res  = await fetch('/status/' + jobId);
+        const data = await res.json();
 
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files[0]) showFile(fileInput.files[0]);
-    });
+        if (data.status === 'processing') {
+          setProgress(Math.max(5, data.progress || 0), 'Tracking in progress…');
 
-    removeBtn.addEventListener('click', clearFile);
+        } else if (data.status === 'done') {
+          clearInterval(poll);
+          setProgress(100, 'Done!');
+          setTimeout(() => showResult(jobId, data.result), 500);
 
-    // Drag-and-drop
-    dropZone.addEventListener('dragover', e => {
-      e.preventDefault();
-      dropZone.classList.add('drag-over');
-    });
+        } else if (data.status === 'error') {
+          clearInterval(poll);
+          showErr('Analysis failed: ' + (data.error || 'unknown error'));
+          show('view-upload');
+        }
+      } catch (_) {}
+    }, 1500);
+  });
 
-    ['dragleave', 'dragend'].forEach(ev =>
-      dropZone.addEventListener(ev, () => dropZone.classList.remove('drag-over'))
-    );
+  function setProgress(pct, label) {
+    $('progBar').style.width = pct + '%';
+    $('progPct').textContent = pct + '%';
+    if (label) $('statusLabel').textContent = label;
+  }
 
-    dropZone.addEventListener('drop', e => {
-      e.preventDefault();
-      dropZone.classList.remove('drag-over');
-      const file = e.dataTransfer.files[0];
-      if (file && file.type.startsWith('video/')) {
-        const dt = new DataTransfer();
-        dt.items.add(file);
-        fileInput.files = dt.files;
-        showFile(file);
-      }
-    });
+  // ── results ──────────────────────────────────────────────────────────────
+  function showResult(jobId, stats) {
+    $('resultVideo').src = '/result/' + jobId;
+    $('resultVideo').load();
 
-    // Form submit (wire up to your backend when ready)
-    document.getElementById('uploadForm').addEventListener('submit', e => {
-      e.preventDefault();
-      if (!fileInput.files[0]) {
-        fileInput.closest('.field').querySelector('label').style.color = '#ef4444';
-        return;
-      }
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Uploading…';
+    const dur  = stats.duration_s;
+    const mins = Math.floor(dur / 60), secs = Math.round(dur % 60);
 
-      // Simulate upload — replace with real fetch/FormData call
-      setTimeout(() => {
-        submitBtn.textContent = 'Upload & Analyse';
-        submitBtn.disabled = false;
-        successMsg.classList.add('visible');
-      }, 1800);
-    });
-  </script>
+    $('statsRow').innerHTML = [
+      { lbl: 'Duration',        val: `${mins > 0 ? mins + 'm ' : ''}${secs}s` },
+      { lbl: 'Frame rate',      val: stats.fps, unit: 'fps' },
+      { lbl: 'Ball detected',   val: stats.ball_pct, unit: '% of frames' },
+      { lbl: 'Total frames',    val: stats.frames.toLocaleString() },
+    ].map(s => `
+      <div class="stat">
+        <div class="stat-lbl">${s.lbl}</div>
+        <div class="stat-val">${s.val}${s.unit ? `<span class="stat-unit">${s.unit}</span>` : ''}</div>
+      </div>`).join('');
+
+    show('view-result');
+  }
+
+  // ── reset ────────────────────────────────────────────────────────────────
+  $('againBtn').addEventListener('click', () => {
+    clearFile();
+    $('resultVideo').src = '';
+    $('statsRow').innerHTML = '';
+    show('view-upload');
+  });
+</script>
 
 </body>
 </html>
