@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VolleyAI — Upload Video</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0d0f14;
+      color: #e8eaf0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 16px 80px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    header .wordmark {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #5b8af5;
+      margin-bottom: 8px;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    header p {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #6b7280;
+    }
+
+    .card {
+      background: #13161e;
+      border: 1px solid #1e2330;
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 560px;
+    }
+
+    .field {
+      margin-bottom: 24px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      color: #9ca3af;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    input[type="text"],
+    input[type="date"] {
+      width: 100%;
+      padding: 12px 16px;
+      background: #0d0f14;
+      border: 1px solid #1e2330;
+      border-radius: 10px;
+      color: #e8eaf0;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input[type="text"]::placeholder { color: #3d4455; }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.4);
+      cursor: pointer;
+    }
+
+    input[type="text"]:focus,
+    input[type="date"]:focus {
+      border-color: #5b8af5;
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed #1e2330;
+      border-radius: 14px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: #5b8af5;
+      background: rgba(91, 138, 245, 0.04);
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 16px;
+      background: #1a1f2e;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .drop-icon svg {
+      width: 24px;
+      height: 24px;
+      stroke: #5b8af5;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .drop-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #d1d5db;
+      margin-bottom: 4px;
+    }
+
+    .drop-sub {
+      font-size: 13px;
+      color: #4b5563;
+    }
+
+    .drop-sub span {
+      color: #5b8af5;
+      font-weight: 500;
+    }
+
+    /* File chosen state */
+    .file-preview {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      background: #0d0f14;
+      border: 1px solid #1e2330;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 16px;
+    }
+
+    .file-preview.visible { display: flex; }
+
+    .file-preview svg {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      stroke: #5b8af5;
+      fill: none;
+      stroke-width: 1.8;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .file-info { flex: 1; min-width: 0; }
+
+    .file-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #e8eaf0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-size { font-size: 12px; color: #4b5563; margin-top: 2px; }
+
+    .remove-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #4b5563;
+      padding: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      transition: color 0.15s;
+    }
+
+    .remove-btn:hover { color: #ef4444; }
+
+    .remove-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+    }
+
+    /* Submit */
+    .submit-btn {
+      width: 100%;
+      margin-top: 32px;
+      padding: 14px;
+      background: #5b8af5;
+      border: none;
+      border-radius: 10px;
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    .submit-btn:hover { background: #4a79e4; }
+    .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Success banner */
+    .success {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 16px;
+      font-size: 14px;
+      color: #4ade80;
+    }
+
+    .success.visible { display: flex; }
+
+    .success svg {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      stroke: #4ade80;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="wordmark">VolleyAI</div>
+    <h1>Upload Video</h1>
+    <p>Add a match or practice session for AI analysis.</p>
+  </header>
+
+  <div class="card">
+    <form id="uploadForm" novalidate>
+
+      <div class="field">
+        <label for="sessionName">Session name</label>
+        <input
+          type="text"
+          id="sessionName"
+          name="sessionName"
+          placeholder="e.g. Practice Session 1 · Game vs France"
+          autocomplete="off"
+        />
+      </div>
+
+      <div class="field">
+        <label for="sessionDate">Date</label>
+        <input type="date" id="sessionDate" name="sessionDate" />
+      </div>
+
+      <div class="field">
+        <label>Video file</label>
+        <div class="drop-zone" id="dropZone">
+          <input
+            type="file"
+            id="videoFile"
+            name="videoFile"
+            accept="video/*"
+          />
+          <div class="drop-icon">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <div class="drop-title">Drop your video here</div>
+          <div class="drop-sub">or <span>browse files</span> &nbsp;·&nbsp; MP4, MOV, AVI, MKV</div>
+        </div>
+
+        <div class="file-preview" id="filePreview">
+          <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="3"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+          <div class="file-info">
+            <div class="file-name" id="fileName"></div>
+            <div class="file-size" id="fileSize"></div>
+          </div>
+          <button type="button" class="remove-btn" id="removeFile" aria-label="Remove file">
+            <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="submitBtn">Upload &amp; Analyse</button>
+
+      <div class="success" id="successMsg">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Video uploaded successfully — analysis will begin shortly.
+      </div>
+
+    </form>
+  </div>
+
+  <script>
+    const dropZone   = document.getElementById('dropZone');
+    const fileInput  = document.getElementById('videoFile');
+    const filePreview = document.getElementById('filePreview');
+    const fileName   = document.getElementById('fileName');
+    const fileSize   = document.getElementById('fileSize');
+    const removeBtn  = document.getElementById('removeFile');
+    const submitBtn  = document.getElementById('submitBtn');
+    const successMsg = document.getElementById('successMsg');
+
+    function formatBytes(bytes) {
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function showFile(file) {
+      fileName.textContent = file.name;
+      fileSize.textContent = formatBytes(file.size);
+      filePreview.classList.add('visible');
+    }
+
+    function clearFile() {
+      fileInput.value = '';
+      filePreview.classList.remove('visible');
+    }
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) showFile(fileInput.files[0]);
+    });
+
+    removeBtn.addEventListener('click', clearFile);
+
+    // Drag-and-drop
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+
+    ['dragleave', 'dragend'].forEach(ev =>
+      dropZone.addEventListener(ev, () => dropZone.classList.remove('drag-over'))
+    );
+
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type.startsWith('video/')) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        fileInput.files = dt.files;
+        showFile(file);
+      }
+    });
+
+    // Form submit (wire up to your backend when ready)
+    document.getElementById('uploadForm').addEventListener('submit', e => {
+      e.preventDefault();
+      if (!fileInput.files[0]) {
+        fileInput.closest('.field').querySelector('label').style.color = '#ef4444';
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Uploading…';
+
+      // Simulate upload — replace with real fetch/FormData call
+      setTimeout(() => {
+        submitBtn.textContent = 'Upload & Analyse';
+        submitBtn.disabled = false;
+        successMsg.classList.add('visible');
+      }, 1800);
+    });
+  </script>
+
+</body>
+</html>
