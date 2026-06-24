@@ -1,0 +1,3392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VolleyAI Coach</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --blue-950: #141c2e;
+    --blue-900: #1e2d45;
+    --blue-700: #1a56db;
+    --blue-600: #1a56db;
+    --blue-500: #3b82f6;
+    --blue-100: #e1effe;
+    --blue-50:  #f0f5ff;
+    --orange:   #e05a00;
+    --orange-h: #c44f00;
+    --green:    #157a3c;
+    --green-100:#d1fae5;
+    --red:      #c81e1e;
+    --red-100:  #fde8e8;
+    --yellow-100:#fdf6b2;
+    --yellow-700:#92400e;
+    --gray-900: #111827;
+    --gray-700: #374151;
+    --gray-500: #6b7280;
+    --gray-400: #9ca3af;
+    --gray-200: #d1d5db;
+    --gray-100: #f3f4f6;
+    --gray-50:  #f9fafb;
+    --white:    #ffffff;
+    --radius:   4px;
+    --shadow:   none;
+    --shadow-md:none;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; color: var(--gray-900); font-size: 14px; }
+  a { text-decoration: none; color: inherit; }
+  button { cursor: pointer; border: none; background: none; font: inherit; }
+  input, select, textarea { font: inherit; }
+
+  /* ── Layout ── */
+  #app { display: flex; height: 100vh; overflow: hidden; }
+  #sidebar {
+    width: 210px; background: #1a1f2e; color: #fff;
+    display: flex; flex-direction: column; flex-shrink: 0;
+    border-right: 1px solid #0d1117;
+  }
+  #sidebar .logo { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,.08); display: flex; align-items: center; gap: 10px; }
+  #sidebar .logo-icon { width: 28px; height: 28px; background: var(--orange); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 14px; flex-shrink: 0; }
+  #sidebar .logo-text { line-height: 1.2; }
+  #sidebar .logo-text strong { font-size: 14px; letter-spacing: -.01em; }
+  #sidebar .logo-text small { color: rgba(255,255,255,.4); font-size: 10px; }
+  #sidebar nav { flex: 1; padding: 8px 0; }
+  #sidebar nav a {
+    display: flex; align-items: center; gap: 9px; padding: 8px 16px;
+    color: rgba(255,255,255,.55); font-size: 13px; font-weight: 500; transition: .12s;
+    border-left: 3px solid transparent;
+  }
+  #sidebar nav a:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.9); }
+  #sidebar nav a.active { background: rgba(255,255,255,.08); color: #fff; border-left-color: var(--orange); }
+  #sidebar nav a svg { flex-shrink: 0; opacity: .7; }
+  #sidebar nav a.active svg { opacity: 1; }
+  #sidebar .sidebar-foot { padding: 10px 16px; border-top: 1px solid rgba(255,255,255,.08); font-size: 11px; color: rgba(255,255,255,.25); }
+
+  #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  #topbar { height: 48px; background: #fff; border-bottom: 1px solid var(--gray-200); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; }
+  #topbar h1 { font-size: 15px; font-weight: 700; letter-spacing: -.01em; }
+  #content { flex: 1; overflow-y: auto; padding: 20px; }
+
+  /* ── Pages ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── Cards ── */
+  .card { background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius); }
+  .card-header { padding: 14px 16px 0; }
+  .card-header h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--gray-500); }
+  .card-header p { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+  .card-body { padding: 14px 16px; }
+  .card-body.pt-0 { padding-top: 6px; }
+
+  /* ── Stat tiles ── */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+  .stat-tile { background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+  .stat-tile-icon { width: 36px; height: 36px; border-radius: 3px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .stat-tile h2 { font-size: 26px; font-weight: 800; line-height: 1; }
+  .stat-tile small { font-size: 11px; color: var(--gray-500); margin-top: 2px; display: block; }
+
+  /* ── Buttons ── */
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--radius); font-size: 13px; font-weight: 600; transition: .12s; }
+  .btn-primary { background: var(--blue-600); color: #fff; }
+  .btn-primary:hover { background: var(--blue-700); }
+  .btn-orange { background: var(--orange); color: #fff; }
+  .btn-orange:hover { background: var(--orange-h); }
+  .btn-outline { border: 1px solid var(--gray-200); color: var(--gray-700); background: #fff; }
+  .btn-outline:hover { background: var(--gray-100); border-color: var(--gray-400); }
+  .btn-ghost { color: var(--gray-500); }
+  .btn-ghost:hover { background: var(--gray-100); color: var(--gray-900); }
+  .btn-sm { padding: 4px 9px; font-size: 12px; }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn[disabled] { opacity: .45; pointer-events: none; }
+
+  /* ── Badges ── */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; border-radius: 2px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+  .badge-blue { background: var(--blue-100); color: var(--blue-700); }
+  .badge-green { background: var(--green-100); color: var(--green); }
+  .badge-red { background: var(--red-100); color: var(--red); }
+  .badge-yellow { background: var(--yellow-100); color: var(--yellow-700); }
+  .badge-gray { background: var(--gray-100); color: var(--gray-700); }
+  .badge-orange { background: #fff0e6; color: var(--orange); }
+
+  /* ── Form elements ── */
+  .form-group { margin-bottom: 12px; }
+  .form-group label { display: block; font-size: 11px; font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+  .form-control { width: 100%; padding: 7px 9px; border: 1px solid var(--gray-200); border-radius: var(--radius); font-size: 13px; outline: none; transition: .12s; background: #fff; }
+  .form-control:focus { border-color: var(--blue-500); box-shadow: 0 0 0 2px rgba(59,130,246,.12); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; border-bottom: 2px solid var(--gray-200); margin-bottom: 18px; gap: 0; }
+  .tab-btn { padding: 8px 16px; font-size: 13px; font-weight: 600; color: var(--gray-500); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: .12s; border-radius: 0; background: none; }
+  .tab-btn:hover { color: var(--gray-900); }
+  .tab-btn.active { color: var(--gray-900); border-bottom-color: var(--orange); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Tables / Lists ── */
+  .player-list { display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--gray-200); border-radius: var(--radius); overflow: hidden; background: var(--gray-200); }
+  .player-row {
+    background: #fff; padding: 11px 14px; display: flex; align-items: center; gap: 12px;
+    transition: .1s; cursor: pointer;
+  }
+  .player-row:hover { background: var(--blue-50); }
+  .avatar { width: 34px; height: 34px; border-radius: 50%; background: #e8edf5; color: #3d5a8a; font-weight: 800; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .player-info { flex: 1; min-width: 0; }
+  .player-name { font-weight: 700; font-size: 14px; }
+  .player-meta { font-size: 12px; color: var(--gray-500); margin-top: 1px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .player-stats-mini { display: flex; gap: 16px; text-align: center; }
+  .stat-mini strong { display: block; font-size: 16px; font-weight: 800; }
+  .stat-mini span { font-size: 11px; color: var(--gray-400); }
+  .player-actions { display: flex; gap: 6px; align-items: center; }
+
+  /* ── Charts ── */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .chart-wrap { position: relative; height: 200px; }
+
+  /* ── Drill cards ── */
+  .drill-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+  .drill-card { background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 14px; }
+  .drill-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 5px; }
+  .drill-card p { font-size: 12px; color: #4b5563; line-height: 1.5; margin-bottom: 8px; }
+  .drill-meta { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
+  .drill-detail { font-size: 12px; color: var(--gray-500); margin-top: 8px; border-top: 1px solid var(--gray-100); padding-top: 8px; }
+  .drill-detail strong { color: var(--gray-700); }
+
+  /* ── Practice plan ── */
+  .plan-card { background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius); overflow: hidden; margin-bottom: 12px; }
+  .plan-header { padding: 12px 16px; border-bottom: 1px solid var(--gray-200); display: flex; align-items: center; justify-content: space-between; background: var(--gray-50); }
+  .plan-header h3 { font-size: 14px; font-weight: 700; }
+  .plan-drill { padding: 10px 16px; border-bottom: 1px solid var(--gray-100); display: flex; gap: 10px; align-items: flex-start; }
+  .plan-drill:last-child { border-bottom: none; }
+  .plan-num { width: 22px; height: 22px; background: var(--blue-100); color: var(--blue-700); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; margin-top: 1px; }
+  .plan-drill-info { flex: 1; }
+  .plan-drill-info strong { font-size: 13px; }
+  .plan-drill-info .why { font-size: 12px; color: var(--gray-500); margin-top: 2px; font-style: italic; }
+  .plan-drill-info .trigger { font-size: 11px; color: var(--blue-600); margin-top: 2px; }
+
+  /* ── Modal ── */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: .15s; }
+  .modal-bg.open { opacity: 1; pointer-events: all; }
+  .modal { background: #fff; border-radius: var(--radius); width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,.18); transform: translateY(12px); transition: .15s; }
+  .modal-bg.open .modal { transform: translateY(0); }
+  .modal-head { padding: 16px 20px 0; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--gray-200); padding-bottom: 12px; }
+  .modal-head h2 { font-size: 16px; font-weight: 700; }
+  .modal-body { padding: 16px 20px 20px; }
+  .close-btn { color: var(--gray-400); font-size: 20px; line-height: 1; }
+  .close-btn:hover { color: var(--gray-700); }
+
+  /* ── Analysis ── */
+  .analysis-block { background: var(--blue-50); border: 1px solid var(--blue-100); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; }
+  .strength-list li, .weakness-list li { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 6px; font-size: 13px; }
+  .dot-green { width: 7px; height: 7px; background: var(--green); border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .dot-red { width: 7px; height: 7px; background: var(--red); border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .scouting-report { font-size: 13px; line-height: 1.65; color: var(--gray-700); background: var(--gray-50); border-radius: var(--radius); padding: 12px; border: 1px solid var(--gray-200); margin-bottom: 12px; }
+
+  /* ── Alert ── */
+  .alert { padding: 9px 12px; border-radius: var(--radius); font-size: 13px; margin-bottom: 12px; display: flex; gap: 8px; align-items: center; }
+  .alert-blue { background: var(--blue-50); color: var(--blue-700); border: 1px solid var(--blue-100); }
+  .alert-green { background: var(--green-100); color: var(--green); border: 1px solid #6ee7b7; }
+  .alert-red { background: var(--red-100); color: var(--red); border: 1px solid #fca5a5; }
+
+  /* ── API key bar ── */
+  #key-banner { background: #1a1f2e; color: #fff; padding: 9px 20px; display: flex; align-items: center; gap: 12px; font-size: 12px; flex-shrink: 0; border-bottom: 1px solid #0d1117; }
+  #key-banner input { flex: 1; max-width: 300px; padding: 5px 9px; border-radius: 3px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.07); color: #fff; font-size: 12px; outline: none; }
+  #key-banner input::placeholder { color: rgba(255,255,255,.35); }
+  #key-banner input:focus { border-color: rgba(255,255,255,.5); }
+
+  /* ── Misc ── */
+  .page-title { margin-bottom: 16px; }
+  .page-title h1 { font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
+  .page-title p { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+  .flex { display: flex; }
+  .flex-between { display: flex; align-items: center; justify-content: space-between; }
+  .flex-gap { display: flex; align-items: center; gap: 8px; }
+  .mb-4 { margin-bottom: 14px; }
+  .mt-4 { margin-top: 14px; }
+  .text-sm { font-size: 12px; }
+  .text-gray { color: var(--gray-500); }
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--gray-400); }
+  .empty-state svg { margin-bottom: 10px; opacity: .35; }
+  .empty-state p { font-size: 14px; font-weight: 600; }
+  .empty-state small { font-size: 12px; display: block; margin-top: 3px; }
+  .loading-spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .section-divider { font-size: 11px; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: .06em; margin: 18px 0 8px; border-bottom: 1px solid var(--gray-200); padding-bottom: 5px; }
+  .tag { display: inline-block; background: var(--blue-50); color: var(--blue-700); padding: 1px 7px; border-radius: 2px; font-size: 11px; font-weight: 600; margin: 2px; }
+  details summary { cursor: pointer; user-select: none; }
+  details summary::-webkit-details-marker { display: none; }
+
+  /* ── Live Match ── */
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .live-score-block { background:#1a1f2e; color:#fff; border-radius:var(--radius); padding:16px; margin-bottom:10px; text-align:center; border:1px solid #2d3448; }
+  .live-teams-row { display:flex; align-items:center; justify-content:center; gap:16px; margin-bottom:6px; }
+  .live-team { text-align:center; min-width:90px; }
+  .live-score-num { font-size:60px; font-weight:900; line-height:1; font-variant-numeric:tabular-nums; }
+  .live-team-name { font-size:11px; opacity:.5; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px; text-transform:uppercase; letter-spacing:.05em; }
+  .live-colon { font-size:36px; font-weight:200; opacity:.25; padding:0 4px; margin-bottom:8px; }
+  .live-status-row { display:flex; align-items:center; justify-content:center; gap:8px; flex-wrap:wrap; font-size:11px; opacity:.6; }
+  .live-serving-pill { padding:2px 8px; border-radius:2px; font-size:10px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; }
+  .set-badges { display:flex; gap:4px; }
+  .set-badge { background:rgba(255,255,255,.12); border-radius:2px; padding:2px 7px; font-size:10px; font-weight:700; }
+  .set-badge.won { background:var(--orange); }
+  .live-point-btn { border:none; border-radius:var(--radius); padding:20px 16px; font-size:18px; font-weight:800; cursor:pointer; width:100%; -webkit-tap-highlight-color:transparent; user-select:none; transition:.08s; text-transform:uppercase; letter-spacing:.04em; }
+  .live-point-btn:active { opacity:.85; transform:scale(.98); }
+  .live-point-btn.us { background:#157a3c; color:#fff; }
+  .live-point-btn.them { background:#b91c1c; color:#fff; }
+  .live-controls { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+
+  /* Court diagram */
+  .court-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:5px; padding:3px 0; }
+  .court-half { display:contents; }
+  .court-pos { position:relative; border-radius:3px; background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.18); display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer; transition:.1s; min-height:72px; padding:8px 4px; -webkit-tap-highlight-color:transparent; }
+  .court-pos:active { background:rgba(255,255,255,.3); }
+  .court-pos .jersey { font-size:10px; font-weight:700; color:rgba(255,255,255,.45); }
+  .court-pos .pname { font-size:13px; font-weight:800; color:#fff; text-align:center; line-height:1.2; margin-top:2px; word-break:break-word; }
+  .court-pos .pos-abbr { font-size:9px; font-weight:700; color:rgba(255,255,255,.75); margin-top:3px; background:rgba(0,0,0,.3); padding:1px 5px; border-radius:2px; }
+  .court-pos .pos-label { font-size:8px; color:rgba(255,255,255,.3); margin-top:2px; }
+  .court-pos.libero-spot { background:rgba(224,90,0,.3); border-color:rgba(224,90,0,.55); }
+  .court-pos.serving { background:rgba(21,122,60,.35); border-color:rgba(21,122,60,.7); }
+  .court-pos.serving::after { content:'SRV'; font-size:7px; color:#6ee7b7; font-weight:800; letter-spacing:.08em; margin-top:1px; }
+  .court-container { background:#1e5c2e; border-radius:3px; padding:7px; display:flex; flex-direction:column; gap:0; border:1px solid #17492400; }
+  .court-net { background:rgba(255,255,255,.14); border-top:2px solid rgba(255,255,255,.3); border-bottom:2px solid rgba(255,255,255,.3); text-align:center; font-size:9px; font-weight:800; color:rgba(255,255,255,.45); letter-spacing:.14em; padding:3px 0; margin:0 -7px; }
+  .bench-strip { display:flex; gap:6px; flex-wrap:wrap; }
+  .bench-player { background:#fff; border:1px solid var(--gray-200); border-radius:3px; padding:7px 10px; font-size:12px; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:6px; transition:.1s; }
+  .bench-player:hover { border-color:#93c5fd; background:var(--blue-50); }
+  .bench-player:active { background:var(--blue-50); }
+  .bench-player .bnum { font-size:11px; color:var(--gray-400); font-weight:600; }
+
+  /* Stat action buttons */
+  .stat-action-grid { display:grid; gap:8px; }
+  .stat-action-grid.cols-2 { grid-template-columns:1fr 1fr; }
+  .stat-action-grid.cols-3 { grid-template-columns:1fr 1fr 1fr; }
+  .stat-btn { padding:14px 10px; border-radius:3px; font-size:14px; font-weight:800; text-align:center; cursor:pointer; border:none; transition:.1s; -webkit-tap-highlight-color:transparent; user-select:none; border: 1px solid transparent; }
+  .stat-btn:active { opacity:.8; transform:scale(.96); }
+  .stat-btn.green  { background:#d1fae5; color:#065f46; border-color:#6ee7b7; }
+  .stat-btn.red    { background:#fde8e8; color:#991b1b; border-color:#fca5a5; }
+  .stat-btn.blue   { background:#e1effe; color:#1e429f; border-color:#93c5fd; }
+  .stat-btn.orange { background:#fff0e6; color:#9a3412; border-color:#fdba74; }
+  .stat-btn.gray   { background:var(--gray-100); color:var(--gray-700); border-color:var(--gray-200); }
+  .stat-btn.yellow { background:#fdf6b2; color:#713f12; border-color:#fde68a; }
+  .stat-btn .stat-btn-label { font-size:10px; font-weight:600; opacity:.55; margin-top:2px; text-transform:uppercase; letter-spacing:.04em; }
+
+  /* Live stats table */
+  .live-stats-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .live-stats-table th { background:var(--gray-50); padding:5px 8px; text-align:left; font-weight:700; color:var(--gray-500); font-size:10px; border-bottom:2px solid var(--gray-200); white-space:nowrap; text-transform:uppercase; letter-spacing:.04em; }
+  .live-stats-table td { padding:6px 8px; border-bottom:1px solid var(--gray-100); }
+  .live-stats-table tr:last-child td { border-bottom:none; }
+
+  /* Match setup */
+  .lineup-slot { background:var(--gray-50); border:2px dashed var(--gray-200); border-radius:3px; padding:10px; display:flex; align-items:center; gap:10px; cursor:pointer; transition:.12s; margin-bottom:6px; }
+  .lineup-slot:hover { border-color:var(--blue-500); background:var(--blue-50); }
+  .lineup-slot.filled { border-style:solid; border-color:var(--gray-200); background:#fff; }
+  .lineup-pos-label { font-size:10px; font-weight:700; color:var(--gray-400); text-transform:uppercase; letter-spacing:.05em; width:70px; flex-shrink:0; }
+  .lineup-player-name { font-size:13px; font-weight:700; }
+  .lineup-jersey { font-size:11px; color:var(--gray-400); }
+
+  /* Match history cards */
+  .match-card { background:#fff; border:1px solid var(--gray-200); border-radius:var(--radius); margin-bottom:8px; overflow:hidden; }
+  .match-card-header { padding:12px 16px; display:flex; align-items:center; justify-content:space-between; }
+  .match-result { font-size:20px; font-weight:900; }
+  .match-result.win { color:var(--green); }
+  .match-result.loss { color:var(--red); }
+
+  /* PWA offline indicator */
+  #offlineBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:500; background:#b91c1c; color:#fff; text-align:center; padding:5px; font-size:12px; font-weight:700; }
+  #offlineBanner.show { display:block; }
+</style>
+</head>
+<body>
+
+<div id="offlineBanner">⚠ You are offline — match stats are saved locally and will sync when connection returns</div>
+
+<!-- Key Banner -->
+<div id="key-banner">
+  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+  <span>Anthropic API Key (for AI features):</span>
+  <input type="password" id="apiKeyInput" placeholder="sk-ant-..." />
+  <button class="btn btn-primary btn-sm" onclick="saveKey()">Save Key</button>
+  <span id="keySaved" style="color:#86efac;display:none">✓ Saved</span>
+  <span style="margin-left:auto;font-size:11px;opacity:.5">Key stored locally in your browser only</span>
+</div>
+
+<div id="app">
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="logo">
+      <div class="logo-icon">V</div>
+      <div class="logo-text"><strong>VolleyAI</strong><br><small>Coach Platform</small></div>
+    </div>
+    <nav>
+      <a href="#" class="active" data-page="dashboard" onclick="nav(this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a href="#" data-page="players" onclick="nav(this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        Players
+      </a>
+      <a href="#" data-page="add-players" onclick="nav(this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+        Enter Stats
+      </a>
+      <a href="#" data-page="drills" onclick="nav(this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        Drill Library
+      </a>
+      <a href="#" data-page="plans" onclick="nav(this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+        Practice Plans
+      </a>
+      <a href="#" data-page="reports" onclick="nav(this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Reports
+      </a>
+      <div style="margin:10px 8px 4px;font-size:10px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;padding:0 4px">Live</div>
+      <a href="#" data-page="match" onclick="nav(this)" style="background:rgba(249,115,22,.15);color:#fb923c;border:1px solid rgba(249,115,22,.3)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Live Match
+        <span id="liveDot" style="display:none;width:7px;height:7px;background:#22c55e;border-radius:50%;margin-left:auto;animation:pulse 1.5s infinite"></span>
+      </a>
+      <a href="#" data-page="match-history" onclick="nav(this)">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2zm0 6v4l3 3"/></svg>
+        Match History
+      </a>
+    </nav>
+    <div class="sidebar-foot">
+      <span id="offlineBadge" style="display:none;color:#fca5a5;font-size:10px">⚠ Offline — data saved locally</span>
+      <span id="onlineBadge" style="color:rgba(255,255,255,.3)">VolleyAI Coach v1.0</span>
+    </div>
+  </aside>
+
+  <div id="main">
+    <div id="topbar">
+      <h1 id="topbarTitle">Dashboard</h1>
+      <div class="flex-gap">
+        <span id="teamName" style="font-size:13px;color:var(--gray-500)"></span>
+      </div>
+    </div>
+    <div id="content">
+
+      <!-- ══════════════════════════════════════════ DASHBOARD ══ -->
+      <div id="page-dashboard" class="page active">
+        <div id="dashContent"></div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ PLAYERS ════ -->
+      <div id="page-players" class="page">
+        <div class="flex-between mb-4">
+          <div class="page-title" style="margin-bottom:0">
+            <h1>Players</h1>
+            <p id="playerCount">0 players</p>
+          </div>
+          <div class="flex-gap">
+            <button class="btn btn-outline" onclick="openAddPlayerModal()">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+              Add Player
+            </button>
+            <button class="btn btn-orange" onclick="nav(document.querySelector('[data-page=add-players]'))">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Enter Stats
+            </button>
+          </div>
+        </div>
+        <input class="form-control mb-4" id="playerSearch" style="max-width:300px" placeholder="🔍  Search players..." oninput="renderPlayers()">
+        <div id="playerList" class="player-list"></div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ ADD PLAYERS ══ -->
+      <div id="page-add-players" class="page">
+        <div class="page-title">
+          <h1>Enter Stats</h1>
+          <p>Add player statistics manually, import from a file, or scan a stat sheet photo</p>
+        </div>
+
+        <div class="form-group" style="max-width:320px">
+          <label>Team Name</label>
+          <input class="form-control" id="teamNameInput" placeholder="e.g. Varsity Women's" value="">
+        </div>
+
+        <div class="tabs" id="addTabs">
+          <button class="tab-btn active" data-tab="manual" onclick="switchTab('addTabs','manual',this)">Manual Entry</button>
+          <button class="tab-btn" data-tab="csv" onclick="switchTab('addTabs','csv',this)">CSV / Excel</button>
+          <button class="tab-btn" data-tab="photo" onclick="switchTab('addTabs','photo',this)">📷 Scan Stat Sheet</button>
+        </div>
+
+        <!-- Manual -->
+        <div class="tab-panel active" id="tab-manual">
+          <div id="manualRows"></div>
+          <div class="flex-gap mt-4">
+            <button class="btn btn-outline" onclick="addManualRow()">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Player
+            </button>
+            <button class="btn btn-orange" onclick="saveManualPlayers()">Save Players</button>
+          </div>
+        </div>
+
+        <!-- CSV -->
+        <div class="tab-panel" id="tab-csv">
+          <div id="dropzone" style="border:2px dashed var(--gray-200);border-radius:10px;padding:40px;text-align:center;cursor:pointer;transition:.15s" onclick="document.getElementById('fileInput').click()" ondragover="dropOver(event)" ondrop="dropFile(event)">
+            <svg width="32" height="32" fill="none" stroke="var(--gray-400)" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 10px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <p style="font-weight:600;color:var(--gray-600)">Drop CSV or Excel file here</p>
+            <p style="font-size:12px;color:var(--gray-400);margin-top:4px">or click to browse (.csv, .xlsx)</p>
+            <input type="file" id="fileInput" accept=".csv,.xlsx" style="display:none" onchange="handleFileInput(this)">
+          </div>
+          <div id="csvPreview" class="mt-4"></div>
+          <div class="alert alert-blue mt-4">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Expected columns: <strong>Name, Position, Kills, Attack Attempts, Attack Errors, Hitting%, Blocks, Aces, Serve Errors, Assists, Digs, Reception Rating, Passing Errors</strong>
+          </div>
+        </div>
+
+        <!-- Photo scan -->
+        <div class="tab-panel" id="tab-photo">
+          <div class="card">
+            <div class="card-body">
+              <p style="font-size:13px;color:var(--gray-600);margin-bottom:16px">Upload a photo or screenshot of any stat sheet. AI will read it and extract all player statistics automatically.</p>
+
+              <div id="photoDropzone" style="border:2px dashed var(--gray-200);border-radius:10px;padding:40px;text-align:center;cursor:pointer;transition:.15s;position:relative"
+                onclick="document.getElementById('photoInput').click()"
+                ondragover="event.preventDefault();this.style.borderColor='var(--blue-500)'"
+                ondragleave="this.style.borderColor='var(--gray-200)'"
+                ondrop="handlePhotoDrop(event)">
+                <input type="file" id="photoInput" accept="image/*" style="display:none" onchange="handlePhotoSelect(this)">
+                <div id="photoDropContent">
+                  <svg width="36" height="36" fill="none" stroke="var(--gray-400)" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 10px">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                  <p style="font-weight:600;color:var(--gray-600)">Drop a stat sheet photo here</p>
+                  <p style="font-size:12px;color:var(--gray-400);margin-top:4px">JPG, PNG, or screenshot — or click to browse</p>
+                </div>
+              </div>
+
+              <div id="photoPreviewWrap" style="display:none;margin-top:16px">
+                <img id="photoPreviewImg" style="max-width:100%;max-height:300px;border-radius:8px;border:1px solid var(--gray-200);display:block;margin-bottom:14px">
+                <button class="btn btn-orange" id="scanBtn" onclick="scanStatSheet()">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                  Scan with AI
+                </button>
+                <button class="btn btn-outline" style="margin-left:8px" onclick="clearPhoto()">Clear</button>
+              </div>
+
+              <div id="photoStatus" class="mt-4"></div>
+              <div id="photoResults" class="mt-4"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ DRILLS ═════ -->
+      <div id="page-drills" class="page">
+        <div class="flex-between mb-4">
+          <div class="page-title" style="margin-bottom:0">
+            <h1>Drill Library</h1>
+            <p id="drillCount">0 drills</p>
+          </div>
+          <button class="btn btn-orange" onclick="openModal('drillModal')">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Create Drill
+          </button>
+        </div>
+
+        <div class="flex-gap mb-4">
+          <input class="form-control" id="drillSearch" style="max-width:280px" placeholder="🔍  Search drills..." oninput="renderDrills()">
+          <select class="form-control" id="drillCatFilter" style="width:180px" onchange="renderDrills()">
+            <option value="">All Categories</option>
+            <option>Hitting</option><option>Blocking</option><option>Serving</option>
+            <option>Serve Receive</option><option>Defense</option><option>Transition</option>
+            <option>Setting</option><option>Team Systems</option>
+          </select>
+          <div class="tabs" id="drillTabs" style="margin-bottom:0">
+            <button class="tab-btn active" data-tab="dt-all" onclick="switchTab('drillTabs','dt-all',this);renderDrills()">All</button>
+            <button class="tab-btn" data-tab="dt-builtin" onclick="switchTab('drillTabs','dt-builtin',this);renderDrills()">Built-in</button>
+            <button class="tab-btn" data-tab="dt-custom" onclick="switchTab('drillTabs','dt-custom',this);renderDrills()">My Drills</button>
+          </div>
+        </div>
+
+        <div class="tab-panel active" id="tab-dt-all"><div id="drillGrid" class="drill-grid"></div></div>
+        <div class="tab-panel" id="tab-dt-builtin"><div id="drillGridBuiltin" class="drill-grid"></div></div>
+        <div class="tab-panel" id="tab-dt-custom"><div id="drillGridCustom" class="drill-grid"></div></div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ PLANS ══════ -->
+      <div id="page-plans" class="page">
+        <div class="flex-between mb-4">
+          <div class="page-title" style="margin-bottom:0">
+            <h1>Practice Plans</h1>
+            <p id="planCount">0 plans</p>
+          </div>
+        </div>
+        <div class="card mb-4" style="border-color:var(--blue-100);background:var(--blue-50)">
+          <div class="card-body">
+            <div class="flex-gap mb-3">
+              <svg width="18" height="18" fill="none" stroke="var(--blue-600)" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2zm0 6v4l3 3"/></svg>
+              <strong style="font-size:14px">Generate AI Practice Plan</strong>
+            </div>
+            <p style="font-size:13px;color:var(--gray-600);margin-bottom:12px">Select a player with stats to generate a personalized drill-based practice plan.</p>
+            <div class="flex-gap">
+              <select class="form-control" id="planPlayerSelect" style="max-width:260px">
+                <option value="">Select a player…</option>
+              </select>
+              <button class="btn btn-orange" id="genPlanBtn" onclick="generatePlan()">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Generate Plan
+              </button>
+            </div>
+            <div id="planGenStatus" class="mt-4"></div>
+          </div>
+        </div>
+        <div id="plansList"></div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ REPORTS ════ -->
+      <div id="page-reports" class="page">
+        <div class="page-title">
+          <h1>Team Reports</h1>
+          <p>AI-generated team-wide analysis</p>
+        </div>
+        <div class="card mb-4" style="border-color:var(--blue-100);background:var(--blue-50)">
+          <div class="card-body">
+            <div class="flex-gap mb-3">
+              <svg width="18" height="18" fill="none" stroke="var(--blue-600)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+              <strong style="font-size:14px">Generate Team Report</strong>
+            </div>
+            <p style="font-size:13px;color:var(--gray-600);margin-bottom:12px">Analyze the entire roster and identify team-wide patterns and practice priorities.</p>
+            <button class="btn btn-orange" onclick="generateTeamReport()">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Generate Team Report
+            </button>
+            <div id="reportStatus" class="mt-4"></div>
+          </div>
+        </div>
+        <div id="reportContent"></div>
+      </div>
+
+      <!-- ══════════════════════════════════════════ LIVE MATCH ══ -->
+      <div id="page-match" class="page"></div>
+
+      <!-- ══════════════════════════════════════════ MATCH HISTORY ══ -->
+      <div id="page-match-history" class="page">
+        <div class="page-title"><h1>Match History</h1><p>All tracked matches — tap to view stats or generate AI analysis</p></div>
+        <div id="matchHistoryList"></div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ══════ STAT ACTION SHEET ══════ -->
+<div id="actionSheet" style="position:fixed;inset:0;z-index:200;display:none">
+  <div id="actionSheetBg" style="position:absolute;inset:0;background:rgba(0,0,0,.5)" onclick="closeActionSheet()"></div>
+  <div id="actionSheetPanel" style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:20px;max-height:80vh;overflow-y:auto;transform:translateY(100%);transition:.25s ease">
+    <div style="width:40px;height:4px;background:var(--gray-200);border-radius:2px;margin:0 auto 16px"></div>
+    <div id="actionSheetContent"></div>
+  </div>
+</div>
+
+<!-- ══════ SUB MODAL ══════ -->
+<div class="modal-bg" id="subModal">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-head"><h2>Substitution</h2><button class="close-btn" onclick="closeModal('subModal')">✕</button></div>
+    <div class="modal-body" id="subModalBody"></div>
+  </div>
+</div>
+
+<!-- ══════ END SET MODAL ══════ -->
+<div class="modal-bg" id="endSetModal">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-head"><h2 id="endSetTitle">End Set</h2><button class="close-btn" onclick="closeModal('endSetModal')">✕</button></div>
+    <div class="modal-body" id="endSetBody"></div>
+  </div>
+</div>
+
+<!-- ══════ PLAYER DETAIL MODAL ══════ -->
+<div class="modal-bg" id="playerModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modalPlayerName">Player</h2>
+      <button class="close-btn" onclick="closeModal('playerModal')">✕</button>
+    </div>
+    <div class="modal-body" id="modalPlayerBody"></div>
+  </div>
+</div>
+
+<!-- Add Player modal -->
+<div class="modal-bg" id="addPlayerModal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head">
+      <h2>Add Player</h2>
+      <button class="close-btn" onclick="closeModal('addPlayerModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Full Name <span style="color:var(--red)">*</span></label>
+        <input class="form-control" id="newPlayerName" placeholder="e.g. Mia Torres" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Jersey #</label>
+        <input class="form-control" id="newPlayerNumber" type="number" min="0" max="99" placeholder="e.g. 7" style="max-width:140px">
+      </div>
+      <div class="form-group">
+        <label>Position(s) <span style="color:var(--gray-400);font-size:11px">select all that apply</span></label>
+        <div id="newPlayerPositions" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;font-size:13px;font-weight:500">
+            <input type="checkbox" name="newPlayerPos" value="Outside Hitter" style="width:15px;height:15px;accent-color:var(--blue-700)"> Outside Hitter
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;font-size:13px;font-weight:500">
+            <input type="checkbox" name="newPlayerPos" value="Middle Blocker" style="width:15px;height:15px;accent-color:var(--blue-700)"> Middle Blocker
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;font-size:13px;font-weight:500">
+            <input type="checkbox" name="newPlayerPos" value="Opposite" style="width:15px;height:15px;accent-color:var(--blue-700)"> Opposite
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;font-size:13px;font-weight:500">
+            <input type="checkbox" name="newPlayerPos" value="Setter" style="width:15px;height:15px;accent-color:var(--blue-700)"> Setter
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;font-size:13px;font-weight:500">
+            <input type="checkbox" name="newPlayerPos" value="Libero" style="width:15px;height:15px;accent-color:var(--blue-700)"> Libero
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;font-size:13px;font-weight:500">
+            <input type="checkbox" name="newPlayerPos" value="Defensive Specialist" style="width:15px;height:15px;accent-color:var(--blue-700)"> Defensive Specialist
+          </label>
+          <label style="display:flex;align-items:center;gap:7px;padding:7px 10px;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;font-size:13px;font-weight:500">
+            <input type="checkbox" name="newPlayerPos" value="Serving Specialist" style="width:15px;height:15px;accent-color:var(--blue-700)"> Serving Specialist
+          </label>
+        </div>
+      </div>
+      <div id="addPlayerError" style="display:none;color:var(--red);font-size:13px;margin-top:10px"></div>
+      <div class="flex-gap mt-4">
+        <button class="btn btn-outline" style="flex:1" onclick="closeModal('addPlayerModal')">Cancel</button>
+        <button class="btn btn-orange" style="flex:2" onclick="saveNewPlayer()">Add Player</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ CREATE DRILL MODAL ══════ -->
+<div class="modal-bg" id="drillModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h2>Create Custom Drill</h2>
+      <button class="close-btn" onclick="closeModal('drillModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Drill Name *</label>
+          <input class="form-control" id="dnName" placeholder="e.g. Pressure Passing Circuit">
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select class="form-control" id="dnCat">
+            <option>Hitting</option><option>Blocking</option><option>Serving</option>
+            <option selected>Serve Receive</option><option>Defense</option>
+            <option>Transition</option><option>Setting</option><option>Team Systems</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Duration (minutes)</label>
+          <input class="form-control" id="dnDuration" type="number" value="15" min="1" max="120">
+        </div>
+        <div class="form-group">
+          <label>Difficulty</label>
+          <select class="form-control" id="dnDiff">
+            <option>Beginner</option><option selected>Intermediate</option><option>Advanced</option><option>Elite</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Skill Focus (comma-separated)</label>
+        <input class="form-control" id="dnSkills" placeholder="e.g. Passing, Footwork, Platform angle">
+      </div>
+      <div class="form-group">
+        <label>Description *</label>
+        <textarea class="form-control" id="dnDesc" rows="3" placeholder="Describe the drill…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Setup Instructions</label>
+        <textarea class="form-control" id="dnSetup" rows="2" placeholder="How to set up the drill…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Coaching Points (one per line)</label>
+        <textarea class="form-control" id="dnPoints" rows="3" placeholder="• Keep platform low&#10;• Call the ball early"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Visibility</label>
+        <select class="form-control" id="dnVis">
+          <option value="private">Private (only me)</option>
+          <option value="public">Public (everyone)</option>
+        </select>
+      </div>
+      <div class="flex-gap">
+        <button class="btn btn-orange" onclick="saveDrill()">Create Drill</button>
+        <button class="btn btn-outline" onclick="closeModal('drillModal')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+let state = {
+  apiKey: localStorage.getItem('vai_key') || '',
+  teamName: localStorage.getItem('vai_team') || 'My Team',
+  players: JSON.parse(localStorage.getItem('vai_players') || '[]'),
+  drills:  JSON.parse(localStorage.getItem('vai_drills')  || '[]'),
+  plans:   JSON.parse(localStorage.getItem('vai_plans')   || '[]'),
+  reports: JSON.parse(localStorage.getItem('vai_reports') || '[]'),
+  parsedImport: [],
+};
+
+function save() {
+  localStorage.setItem('vai_team',    state.teamName);
+  localStorage.setItem('vai_players', JSON.stringify(state.players));
+  localStorage.setItem('vai_drills',  JSON.stringify(state.drills));
+  localStorage.setItem('vai_plans',   JSON.stringify(state.plans));
+  localStorage.setItem('vai_reports', JSON.stringify(state.reports));
+}
+
+function uid() { return Math.random().toString(36).slice(2,10); }
+
+// ═══════════════════════════════════════════════════════════════
+//  BUILT-IN DRILLS
+// ═══════════════════════════════════════════════════════════════
+const BUILTIN_DRILLS = [
+  { id:'bd1', name:'Pressure Passing Circuit', category:'Serve Receive', difficulty:'Intermediate', duration:15, builtin:true,
+    skills:['Passing','Serve receive','Platform control'],
+    description:'Players rotate through challenging serve-receive scenarios with increasing server pressure. Focuses on platform angle and footwork.',
+    setup:'Set up 3 servers at different zones behind the endline. Passers receive 5 serves before rotating.',
+    points:['Feet shoulder-width apart before contact','Move to the ball, don\'t reach','Platform angle controls direction','Call the ball early'] },
+  { id:'bd2', name:'Out-of-System Hitting', category:'Hitting', difficulty:'Advanced', duration:20, builtin:true,
+    skills:['Attack decision making','Off-speed shots','Hitting efficiency'],
+    description:'Simulates imperfect sets and trains hitters to make smart decisions when the ball is tight, off the net, or outside their comfort zone.',
+    setup:'Setter deliberately delivers tight, off, and outside sets. Hitters practice adjusting approach and selecting smart shots.',
+    points:['Adjust approach angle based on set location','Use off-speed shots on tight sets','Keep ball in play over swinging for kills','Read the block early'] },
+  { id:'bd3', name:'Target Serving Challenge', category:'Serving', difficulty:'Beginner', duration:10, builtin:true,
+    skills:['Serving accuracy','Serving consistency','Pressure serving'],
+    description:'Competitive serving drill with targets in specific zones. Tracks accuracy over a set number of serves.',
+    setup:'Place cones in 5 court zones. Each player serves 10 times attempting to hit designated targets.',
+    points:['Consistent toss placement','Follow through toward target','Stay relaxed under pressure','Breathe before each serve'] },
+  { id:'bd4', name:'Block Footwork Ladder', category:'Blocking', difficulty:'Intermediate', duration:15, builtin:true,
+    skills:['Blocking footwork','Lateral quickness','Closing speed'],
+    description:'Uses agility ladder and simulated sets to develop proper blocking footwork patterns along the net.',
+    setup:'Place agility ladder parallel to net. Player starts at zone 2 and practices footwork patterns to reach zones 3, 4, and 2 in sequence.',
+    points:['Stay low and balanced','Hands above the net on jump','Close with hips facing the net','Land with bent knees'] },
+  { id:'bd5', name:'Dig and Rally', category:'Defense', difficulty:'Intermediate', duration:20, builtin:true,
+    skills:['Digging','Ball control','Defensive positioning'],
+    description:'Coach hits hard driven balls to defenders in multiple court zones. Players focus on platform control and getting the ball to the setter.',
+    setup:'Coach stands on box. 2 defenders start in base position. Coach hits to different zones; defenders dig to target setter.',
+    points:['Read the hitter\'s shoulder','Shuffle into position before contact','Keep platform low and firm','Dig to the middle of the court'] },
+  { id:'bd6', name:'Setting Accuracy Grid', category:'Setting', difficulty:'Intermediate', duration:15, builtin:true,
+    skills:['Setting accuracy','Quick sets','Back sets'],
+    description:'Setter works through a grid of target zones delivering sets to hanging hoops or cones. Trains consistency and location setting.',
+    setup:'Hang hoops at zones 2, 3, and 4 at attack height. Setter receives passes and delivers sets into each hoop.',
+    points:['Square to target on every set','Consistent hand position','Quick release on faster sets','Communication with hitters'] },
+  { id:'bd7', name:'Transition Attack Drill', category:'Transition', difficulty:'Advanced', duration:25, builtin:true,
+    skills:['Transition offense','First-contact to attack','System play'],
+    description:'Full team drill simulating side-out and transition sequences. Focuses on moving from defense to offense quickly.',
+    setup:'Coach initiates ball to defense. Team must successfully dig, set, and attack to score. Reset after each point.',
+    points:['Front row transitions to attack immediately after blocking','Setter reads where the dig is going','Hitters stay ready at the net','Back row calls line or angle'] },
+  { id:'bd8', name:'Serve Receive to Offense', category:'Team Systems', difficulty:'Advanced', duration:30, builtin:true,
+    skills:['Side-out efficiency','Serve receive','First tempo offense'],
+    description:'Full side-out system drill. Passers receive live serves and team runs offense. Score kept to add competitive pressure.',
+    setup:'Full team on each side. Serving team scores on aces or errors. Receiving team scores on kills or opponent errors. Play to 10.',
+    points:['Passers must call the ball','Setter reads pass before moving','Hitters communicate before server contacts','Side-out goal is 65% or higher'] },
+  { id:'bd9', name:'Arm Swing Mechanics', category:'Hitting', difficulty:'Beginner', duration:10, builtin:true,
+    skills:['Hitting mechanics','Arm swing','Contact point'],
+    description:'Individual drill focusing on proper arm swing mechanics. Players hit against a wall or partner tosses to groove correct technique.',
+    setup:'Coach or partner tosses ball to hitter from the side. Focus on full arm extension, wrist snap, and follow-through.',
+    points:['High elbow at contact','Snap wrist downward through ball','Full arm extension at contact','Follow through across body'] },
+  { id:'bd10', name:'Libero Training Circuit', category:'Defense', difficulty:'Advanced', duration:20, builtin:true,
+    skills:['Defensive range','Passing','Digging sprawl'],
+    description:'High-repetition circuit designed for liberos and defensive specialists. Includes sprawl digs, platform passing, and dive recovery.',
+    setup:'3 stations: (1) hard-driven angle shots, (2) off-speed dink digs, (3) serve receive from deep court. Rotate every 5 minutes.',
+    points:['Get body behind the ball','Platform angle first, power second','Recover quickly after sprawl','Communicate with all defenders'] },
+  { id:'bd11', name:'Jump Serve Development', category:'Serving', difficulty:'Advanced', duration:20, builtin:true,
+    skills:['Jump serving','Toss consistency','Power serving'],
+    description:'Progressive drill developing the jump serve. Starts with approach and toss mechanics, progresses to full swing.',
+    setup:'Phase 1: approach and toss only. Phase 2: full swing without jump. Phase 3: full jump serve. 10 reps each phase.',
+    points:['High, consistent toss 2-3 feet in front','4-step approach like hitting','Contact at highest point','Aim for deep zones 1 and 5'] },
+  { id:'bd12', name:'Quick Set Offense', category:'Hitting', difficulty:'Intermediate', duration:15, builtin:true,
+    skills:['First tempo hitting','Timing','Middle attack'],
+    description:'Middle hitters and setters work on timing quick first-tempo attacks. Builds offensive threat at the net.',
+    setup:'Setter receives tossed balls. Middle blocker takes a 2-step approach and calls for the quick set. Progress to live passes.',
+    points:['Middle calls set before setter touches ball','Beat the block with timing, not power','Keep approach angle consistent','Setter delivers ball at net height'] },
+];
+
+function allDrills() { return [...BUILTIN_DRILLS, ...state.drills]; }
+
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
+window.onload = function() {
+  document.getElementById('apiKeyInput').value = state.apiKey;
+  document.getElementById('teamNameInput').value = state.teamName;
+  document.getElementById('teamName').textContent = state.teamName;
+  addManualRow();
+  renderDash();
+  renderPlayers();
+  renderDrills();
+  renderPlans();
+  updatePlanSelect();
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  KEY
+// ═══════════════════════════════════════════════════════════════
+function saveKey() {
+  const k = document.getElementById('apiKeyInput').value.trim();
+  state.apiKey = k;
+  localStorage.setItem('vai_key', k);
+  const el = document.getElementById('keySaved');
+  el.style.display = 'inline';
+  setTimeout(() => el.style.display = 'none', 2000);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+const PAGE_TITLES = {
+  dashboard:'Dashboard', players:'Players', 'add-players':'Enter Stats',
+  drills:'Drill Library', plans:'Practice Plans', reports:'Reports',
+};
+function nav(el) {
+  document.querySelectorAll('#sidebar nav a').forEach(a => a.classList.remove('active'));
+  el.classList.add('active');
+  const page = el.dataset.page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('topbarTitle').textContent = PAGE_TITLES[page] || page;
+  if (page === 'dashboard') renderDash();
+  if (page === 'players') renderPlayers();
+  if (page === 'drills') renderDrills();
+  if (page === 'plans') { renderPlans(); updatePlanSelect(); }
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════════════════
+function switchTab(groupId, tabId, btn) {
+  const group = document.getElementById(groupId);
+  group.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#tab-'+tabId).forEach(p => {
+    p.classList.remove('active');
+    p.classList.add('active');
+  });
+  // hide all panels in group, show target
+  const allPanels = document.querySelectorAll(`[id^="tab-"]`);
+  const groupBtns = group.querySelectorAll('.tab-btn');
+  const tabIds = Array.from(groupBtns).map(b => b.dataset.tab);
+  tabIds.forEach(id => {
+    const el = document.getElementById('tab-'+id);
+    if (el) el.classList.remove('active');
+  });
+  const target = document.getElementById('tab-'+tabId);
+  if (target) target.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MODALS
+// ═══════════════════════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-bg')) closeModal(e.target.id);
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════════
+function pct(v) { return (v*100).toFixed(1)+'%'; }
+function num(v, d=1) { return Number(v||0).toFixed(d); }
+function diffBadge(d) {
+  const map = { Beginner:'badge-green', Intermediate:'badge-blue', Advanced:'badge-orange', Elite:'badge-red' };
+  return `<span class="badge ${map[d]||'badge-gray'}">${d}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+let dashCharts = {};
+function renderDash() {
+  const players = state.players;
+  const hasEndedMatches = (state.matches || []).some(m => m.status === 'ended');
+  const withStats = hasEndedMatches ? players.filter(p => p.stats && p.stats.kills !== undefined) : [];
+  const avgHit = withStats.length ? withStats.reduce((s,p) => s + (p.stats.hittingPct||0), 0) / withStats.length : 0;
+  const avgRcpt = withStats.length ? withStats.reduce((s,p) => s + (p.stats.receptionRating||0), 0) / withStats.length : 0;
+  const teamName = document.getElementById('teamNameInput')?.value || state.teamName;
+
+  let html = `
+  <div class="page-title"><h1>${teamName}</h1><p>${players.length} players · ${state.plans.length} practice plans</p></div>
+  <div class="stat-grid">
+    <div class="stat-tile"><div class="stat-tile-icon" style="background:var(--blue-50)">
+      <svg width="20" height="20" fill="none" stroke="var(--blue-600)" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+      <div><h2>${players.length}</h2><small>Total Players</small></div></div>
+    <div class="stat-tile"><div class="stat-tile-icon" style="background:#fff7ed">
+      <svg width="20" height="20" fill="none" stroke="var(--orange)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-5"/></svg></div>
+      <div><h2>${withStats.length ? pct(avgHit) : '—'}</h2><small>Avg Hitting %</small></div></div>
+    <div class="stat-tile"><div class="stat-tile-icon" style="background:var(--green-100)">
+      <svg width="20" height="20" fill="none" stroke="var(--green)" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      <div><h2>${withStats.length ? num(avgRcpt,2) : '—'}</h2><small>Avg Reception</small></div></div>
+    <div class="stat-tile"><div class="stat-tile-icon" style="background:#faf5ff">
+      <svg width="20" height="20" fill="none" stroke="#9333ea" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg></div>
+      <div><h2>${state.plans.length}</h2><small>Practice Plans</small></div></div>
+  </div>
+  <div class="chart-grid">
+    <div class="card"><div class="card-header"><h3>Player Performance</h3><p>Kills, digs, and blocks per player</p></div>
+      <div class="card-body pt-0"><div class="chart-wrap"><canvas id="perfChart"></canvas></div></div></div>
+    <div class="card"><div class="card-header"><h3>Team Skill Radar</h3><p>Strength across skill areas</p></div>
+      <div class="card-body pt-0"><div class="chart-wrap"><canvas id="radarChart"></canvas></div></div></div>
+  </div>
+  <div class="chart-grid">
+    <div class="card"><div class="card-header"><h3>Recent Practice Plans</h3></div><div class="card-body pt-0" id="dashPlans"></div></div>
+    <div class="card"><div class="card-header"><h3>Quick Actions</h3></div><div class="card-body pt-0" id="dashActions"></div></div>
+  </div>`;
+
+  document.getElementById('dashContent').innerHTML = html;
+
+  if (withStats.length === 0) {
+    // No stats — destroy any old charts and show empty state placeholders
+    if (dashCharts.perf)  { dashCharts.perf.destroy();  dashCharts.perf  = null; }
+    if (dashCharts.radar) { dashCharts.radar.destroy(); dashCharts.radar = null; }
+    const empty = `<div class="empty-state" style="padding:30px"><p>No match data yet</p><small>Complete a live match to see stats here</small></div>`;
+    document.getElementById('perfChart').closest('.card').querySelector('.card-body').innerHTML = empty;
+    document.getElementById('radarChart').closest('.card').querySelector('.card-body').innerHTML = empty;
+  } else {
+    // Performance bar chart
+    const perfLabels = withStats.slice(0,8).map(p => p.name.split(' ')[0]);
+    const perfCtx = document.getElementById('perfChart').getContext('2d');
+    if (dashCharts.perf) dashCharts.perf.destroy();
+    dashCharts.perf = new Chart(perfCtx, {
+      type: 'bar',
+      data: {
+        labels: perfLabels,
+        datasets: [
+          { label:'Kills', data: withStats.slice(0,8).map(p=>p.stats.kills||0), backgroundColor:'#3b82f6', borderRadius:4 },
+          { label:'Digs',  data: withStats.slice(0,8).map(p=>p.stats.digs||0),  backgroundColor:'#f97316', borderRadius:4 },
+          { label:'Blocks',data: withStats.slice(0,8).map(p=>p.stats.blocks||0),backgroundColor:'#22c55e', borderRadius:4 },
+        ]
+      },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{size:11} } } }, scales:{ y:{ beginAtZero:true, ticks:{font:{size:10}} }, x:{ ticks:{font:{size:10}} } } }
+    });
+
+    // Radar
+    const radarCtx = document.getElementById('radarChart').getContext('2d');
+    if (dashCharts.radar) dashCharts.radar.destroy();
+    dashCharts.radar = new Chart(radarCtx, {
+      type: 'radar',
+      data: {
+        labels: ['Serving','Attacking','Blocking','Defense','Passing','Setting'],
+        datasets: [{
+          label:'Team', fill:true,
+          data: [
+            20 + withStats.reduce((s,p)=>s+(p.stats.aces||0),0)/Math.max(1,withStats.length)*15,
+            20 + (avgHit + 0.5)*60,
+            20 + withStats.reduce((s,p)=>s+(p.stats.blocks||0),0)/Math.max(1,withStats.length)*15,
+            20 + withStats.reduce((s,p)=>s+(p.stats.digs||0),0)/Math.max(1,withStats.length)*8,
+            20 + avgRcpt/3*60,
+            20 + withStats.reduce((s,p)=>s+(p.stats.assists||0),0)/Math.max(1,withStats.length)*6,
+          ],
+          backgroundColor:'rgba(59,130,246,.2)', borderColor:'#3b82f6', pointBackgroundColor:'#3b82f6',
+        }]
+      },
+      options: { responsive:true, maintainAspectRatio:false, scales:{ r:{ beginAtZero:true, max:100, ticks:{font:{size:9}} } }, plugins:{ legend:{display:false} } }
+    });
+  }
+
+  // Recent plans
+  const plansEl = document.getElementById('dashPlans');
+  if (state.plans.length === 0) {
+    plansEl.innerHTML = '<div class="empty-state" style="padding:20px"><p>No plans yet</p></div>';
+  } else {
+    plansEl.innerHTML = state.plans.slice(0,4).map(pl => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--gray-100)">
+        <div><strong style="font-size:13px">${pl.title}</strong><br><small style="color:var(--gray-500)">${pl.playerName||'Team'}</small></div>
+        <span class="badge badge-blue">${pl.totalMinutes||0} min</span>
+      </div>`).join('');
+  }
+
+  // Quick actions
+  document.getElementById('dashActions').innerHTML = [
+    { label:'Enter Stats', desc:'Add players and enter statistics', page:'add-players', color:'var(--blue-600)' },
+    { label:'AI Analysis', desc:'Generate player scouting reports', page:'players', color:'var(--orange)' },
+    { label:'Practice Plan', desc:'AI-personalized drill recommendations', page:'plans', color:'var(--green)' },
+    { label:'Team Report', desc:'Full team analysis and focus areas', page:'reports', color:'#9333ea' },
+  ].map(a => `
+    <div onclick="nav(document.querySelector('[data-page=${a.page}]'))" style="display:flex;align-items:center;justify-content:space-between;padding:10px;margin-bottom:6px;border:1px solid var(--gray-200);border-radius:8px;cursor:pointer;transition:.15s" onmouseover="this.style.background='var(--gray-50)'" onmouseout="this.style.background='#fff'">
+      <div>
+        <p style="font-size:13px;font-weight:600;color:${a.color}">${a.label}</p>
+        <p style="font-size:11px;color:var(--gray-500)">${a.desc}</p>
+      </div>
+      <svg width="16" height="16" fill="none" stroke="var(--gray-400)" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PLAYERS LIST
+// ═══════════════════════════════════════════════════════════════
+function renderPlayers() {
+  const q = (document.getElementById('playerSearch')?.value || '').toLowerCase();
+  const players = state.players.filter(p => p.name.toLowerCase().includes(q));
+  document.getElementById('playerCount').textContent = `${state.players.length} players`;
+
+  const el = document.getElementById('playerList');
+  if (players.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      <p>${q ? 'No players match' : 'No players yet'}</p>
+      <small>${q ? '' : 'Click "Add Player" to add your roster, then use "Enter Stats" to add stats'}</small></div>`;
+    return;
+  }
+
+  el.innerHTML = players.map(p => {
+    const s = p.stats || {};
+    const isLibero = hasPos(p, 'Libero');
+    const hasStats = isLibero ? (s.digs !== undefined || s.aces !== undefined || s.passAttempts !== undefined) : s.kills !== undefined;
+    const analyzed = !!p.analysis;
+    const statLine = hasStats
+      ? (isLibero
+        ? `${s.digs||0} digs · ${s.aces||0} aces · ${s.passAttempts ? (s.passTotal/s.passAttempts).toFixed(2)+' pass' : ''}`
+        : `${s.kills||0} kills · ${pct(s.hittingPct||0)} hit% · ${s.digs||0} digs`)
+      : 'No stats yet';
+    return `
+    <div class="player-row" onclick="openPlayerModal('${p.id}')">
+      <div class="avatar">${p.name.charAt(0).toUpperCase()}</div>
+      <div class="player-info" style="flex:1;min-width:0">
+        <div class="player-name">${p.name} ${p.number ? `<span style="font-weight:500;color:var(--gray-400);font-size:13px">#${p.number}</span>` : ''}</div>
+        <div style="font-size:12px;color:var(--gray-400);margin-top:2px">${posLabel(p)}${analyzed?' · ✓ Analyzed':''}</div>
+        <div style="font-size:12px;color:var(--gray-500);margin-top:2px">${statLine}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        ${hasStats && !analyzed ? `<button class="btn btn-outline btn-sm" onclick="event.stopPropagation();analyzePlayer('${p.id}')">AI</button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();deletePlayer('${p.id}')">
+          <svg width="13" height="13" fill="none" stroke="var(--red)" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function deletePlayer(id) {
+  if (!confirm('Delete this player?')) return;
+  state.players = state.players.filter(p => p.id !== id);
+  save();
+  renderPlayers();
+}
+
+function openAddPlayerModal() {
+  document.getElementById('newPlayerName').value = '';
+  document.getElementById('newPlayerNumber').value = '';
+  document.querySelectorAll('#newPlayerPositions input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.getElementById('addPlayerError').style.display = 'none';
+  openModal('addPlayerModal');
+  setTimeout(() => document.getElementById('newPlayerName').focus(), 100);
+}
+
+function saveNewPlayer() {
+  const name = document.getElementById('newPlayerName').value.trim();
+  const number = document.getElementById('newPlayerNumber').value.trim();
+  const positions = [...document.querySelectorAll('#newPlayerPositions input[type=checkbox]:checked')].map(cb => cb.value);
+  const errEl = document.getElementById('addPlayerError');
+
+  if (!name) {
+    errEl.textContent = 'Player name is required.';
+    errEl.style.display = 'block';
+    document.getElementById('newPlayerName').focus();
+    return;
+  }
+  if (!positions.length) {
+    errEl.textContent = 'Select at least one position.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (state.players.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+    errEl.textContent = 'A player with that name already exists.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const player = {
+    id: 'p' + Date.now(),
+    name,
+    number: number || '',
+    position: positions.length === 1 ? positions[0] : positions,
+    stats: {},
+    analysis: null,
+    createdAt: new Date().toISOString()
+  };
+  state.players.push(player);
+  save();
+  renderPlayers();
+  closeModal('addPlayerModal');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PLAYER DETAIL MODAL
+// ═══════════════════════════════════════════════════════════════
+function openPlayerModal(id) {
+  const p = state.players.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('modalPlayerName').textContent = p.name;
+  const s = p.stats || {};
+  const isLibero = hasPos(p, 'Libero');
+  const hasStats = isLibero ? (s.digs !== undefined || s.aces !== undefined || s.passAttempts !== undefined) : s.kills !== undefined;
+  const a = p.analysis;
+
+  let html = `
+  <div class="flex-gap mb-4">
+    <span class="badge badge-gray">${posLabel(p)}</span>
+    ${a ? '<span class="badge badge-green">AI Analyzed</span>' : ''}
+  </div>`;
+
+  if (hasStats) {
+    html += `
+    <div class="section-divider">Statistics</div>
+    <div class="form-row-3" style="margin-bottom:16px">
+      ${(isLibero ? [
+          ['Digs', s.digs||0],
+          ['Aces', s.aces||0],
+          ['Serve Err', s.serveErrors||0],
+          ['Serve Att.', s.serviceAttempts||0],
+          ['Pass Rtg', s.passAttempts ? (s.passTotal/s.passAttempts).toFixed(2) : '—'],
+          ['Pass Att.', s.passAttempts||0],
+          ['Pass Err', s.passingErrors||0]
+        ] : [
+          ['Kills',s.kills],['Att.',s.attackAttempts||0],['Errors',s.attackErrors||0],['Hit%',pct(s.hittingPct||0)],['Blocks',s.blocks||0],['Aces',s.aces||0],
+          ['Serve Err',s.serveErrors||0],['Assists',s.assists||0],['Digs',s.digs||0],['Rcpt.',num(s.receptionRating||0,2)],['Pass Err',s.passingErrors||0]
+        ]).map(([l,v]) => `<div style="text-align:center;padding:10px;background:var(--gray-50);border-radius:8px">
+          <strong style="font-size:18px">${v}</strong><br><small style="color:var(--gray-500)">${l}</small></div>`).join('')}
+    </div>`;
+  }
+
+  if (a) {
+    html += `
+    <div class="section-divider">AI Scouting Report</div>
+    <div class="scouting-report">${a.scoutingReport}</div>
+    <div class="two-col">
+      <div>
+        <p style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">▲ Strengths</p>
+        <ul class="strength-list" style="list-style:none">${a.strengths.map(s=>`<li><span class="dot-green"></span>${s}</li>`).join('')}</ul>
+      </div>
+      <div>
+        <p style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:8px">▼ Areas to Improve</p>
+        <ul class="weakness-list" style="list-style:none">${a.weaknesses.map(w=>`<li><span class="dot-red"></span>${w}</li>`).join('')}</ul>
+      </div>
+    </div>`;
+  }
+
+  if (!hasStats) html += `<div class="alert alert-blue">This player has no stats yet. Add stats from the "Enter Stats" page.</div>`;
+  if (hasStats && !a) html += `
+    <div class="mt-4">
+      <button class="btn btn-orange" onclick="closeModal('playerModal');analyzePlayer('${id}')">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Run AI Analysis
+      </button>
+    </div>`;
+
+  const plans = state.plans.filter(pl => pl.playerId === id);
+  if (plans.length > 0) {
+    html += `<div class="section-divider">Practice Plans (${plans.length})</div>`;
+    plans.forEach(pl => {
+      html += `<div class="plan-card">
+        <div class="plan-header"><h3>${pl.title}</h3><span class="badge badge-blue">${pl.totalMinutes} min</span></div>
+        ${pl.drills.map((d,i) => `<div class="plan-drill">
+          <div class="plan-num">${i+1}</div>
+          <div class="plan-drill-info">
+            <strong>${d.name}</strong> <span class="badge badge-gray" style="font-size:10px">${d.duration} min</span>
+            <div class="why">${d.rationale}</div>
+            ${d.triggeringStat ? `<div class="trigger">📊 ${d.triggeringStat}</div>` : ''}
+          </div>
+        </div>`).join('')}
+      </div>`;
+    });
+  }
+
+  document.getElementById('modalPlayerBody').innerHTML = html;
+  openModal('playerModal');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ADD PLAYERS — MANUAL
+// ═══════════════════════════════════════════════════════════════
+let rowCount = 0;
+function addManualRow() {
+  rowCount++;
+  const positions = ['Setter','Outside Hitter','Middle Blocker','Opposite','Libero','Defensive Specialist','Right Side'];
+  const stats = ['kills','attackAttempts','attackErrors','hittingPct','blocks','aces','serveErrors','assists','digs','receptionRating','passingErrors'];
+  const labels = ['Kills','Att.','Errors','Hit%','Blocks','Aces','Srv Err','Assists','Digs','Rcpt','Pass Err'];
+
+  const div = document.createElement('div');
+  div.id = `row-${rowCount}`;
+  div.style.cssText = 'border:1px solid var(--gray-200);border-radius:10px;padding:16px;margin-bottom:12px;background:#fff';
+  div.innerHTML = `
+    <div class="flex-between mb-3">
+      <strong style="font-size:13px">Player ${rowCount}</strong>
+      <button class="btn btn-ghost btn-sm" onclick="document.getElementById('row-${rowCount}').remove()">
+        <svg width="14" height="14" fill="none" stroke="var(--red)" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+      </button>
+    </div>
+    <div class="form-row mb-3">
+      <div class="form-group"><label>Name *</label><input class="form-control" name="name" placeholder="Player Name"></div>
+      <div class="form-group"><label>Position *</label>
+        <select class="form-control" name="position">${positions.map(p=>`<option>${p}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-row-3">${stats.map((k,i) => `<div class="form-group"><label>${labels[i]}</label>
+      <input class="form-control" name="${k}" type="number" step="${k==='hittingPct'?'.001':k==='receptionRating'?'.01':'1'}" min="0" placeholder="0"></div>`).join('')}</div>`;
+  document.getElementById('manualRows').appendChild(div);
+}
+
+function saveManualPlayers() {
+  const tName = document.getElementById('teamNameInput').value.trim() || 'My Team';
+  state.teamName = tName;
+  document.getElementById('teamName').textContent = tName;
+
+  const rows = document.querySelectorAll('#manualRows > div');
+  let added = 0;
+  rows.forEach(row => {
+    const name = row.querySelector('[name=name]')?.value.trim();
+    if (!name) return;
+    const position = row.querySelector('[name=position]')?.value || 'Outside Hitter';
+    const stats = {};
+    ['kills','attackAttempts','attackErrors','hittingPct','blocks','aces','serveErrors','assists','digs','receptionRating','passingErrors'].forEach(k => {
+      const v = row.querySelector(`[name=${k}]`)?.value;
+      if (v !== '' && v !== undefined) stats[k] = parseFloat(v)||0;
+    });
+    if (!stats.hittingPct && stats.kills !== undefined && stats.attackAttempts) {
+      stats.hittingPct = (stats.kills - (stats.attackErrors||0)) / stats.attackAttempts;
+    }
+    const player = { id: uid(), name, position, teamName: tName, stats: Object.keys(stats).length > 0 ? stats : undefined };
+    state.players.push(player);
+    added++;
+  });
+  save();
+  renderPlayers();
+  updatePlanSelect();
+  if (added > 0) {
+    document.getElementById('manualRows').innerHTML = '';
+    rowCount = 0;
+    addManualRow();
+    showToast(`✓ Saved ${added} player${added!==1?'s':''}!`);
+    nav(document.querySelector('[data-page=players]'));
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CSV / EXCEL IMPORT
+// ═══════════════════════════════════════════════════════════════
+const ALIASES = {
+  'player':'name','player name':'name','athlete':'name',
+  'pos':'position',
+  'k':'kills','kill':'kills',
+  'ta':'attackAttempts','att':'attackAttempts','attempts':'attackAttempts','attack attempts':'attackAttempts',
+  'e':'attackErrors','err':'attackErrors','errors':'attackErrors','attack errors':'attackErrors',
+  'pct':'hittingPct','%':'hittingPct','hit%':'hittingPct','hitting%':'hittingPct','hitting pct':'hittingPct','hitting percentage':'hittingPct',
+  'b':'blocks','bs':'blocks','block':'blocks','total blocks':'blocks',
+  'sa':'aces','ace':'aces','service aces':'aces',
+  'se':'serveErrors','serve errors':'serveErrors','service errors':'serveErrors',
+  'a':'assists','ast':'assists','assist':'assists',
+  'd':'digs','dig':'digs',
+  're':'receptionRating','rating':'receptionRating','reception rating':'receptionRating','pass rating':'receptionRating',
+  'pe':'passingErrors','passing errors':'passingErrors','reception errors':'passingErrors',
+};
+
+function normHeader(h) { const n = h.toLowerCase().trim(); return ALIASES[n] || n; }
+
+function parseCSVText(text) {
+  const lines = text.trim().split('\n').map(l => l.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(c => c.replace(/^"|"$/g,'').trim()));
+  if (lines.length < 2) return [];
+  const headers = lines[0].map(normHeader);
+  return lines.slice(1).filter(r => r.some(c=>c)).map(r => {
+    const obj = {};
+    headers.forEach((h,i) => { if (h && r[i]) obj[h] = r[i]; });
+    return mapStatRow(obj);
+  }).filter(p => p.name);
+}
+
+function mapStatRow(obj) {
+  const p = { name: obj.name||obj.Name||'', position: obj.position||obj.Position||'Outside Hitter', stats:{} };
+  const numFields = ['kills','attackAttempts','attackErrors','hittingPct','blocks','aces','serveErrors','assists','digs','receptionRating','passingErrors'];
+  numFields.forEach(k => { if (obj[k] !== undefined && obj[k] !== '') p.stats[k] = parseFloat(obj[k])||0; });
+  if (!p.stats.hittingPct && p.stats.kills !== undefined && p.stats.attackAttempts) {
+    p.stats.hittingPct = (p.stats.kills - (p.stats.attackErrors||0)) / p.stats.attackAttempts;
+  }
+  if (Object.keys(p.stats).length === 0) p.stats = undefined;
+  return p;
+}
+
+function dropOver(e) { e.preventDefault(); document.getElementById('dropzone').style.borderColor='var(--blue-500)'; }
+function dropFile(e) {
+  e.preventDefault();
+  document.getElementById('dropzone').style.borderColor='var(--gray-200)';
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+}
+function handleFileInput(input) { if (input.files[0]) processFile(input.files[0]); }
+
+function processFile(file) {
+  const reader = new FileReader();
+  if (file.name.endsWith('.csv')) {
+    reader.onload = e => showImportPreview(parseCSVText(e.target.result), 'csvPreview');
+    reader.readAsText(file);
+  } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+    reader.onload = e => {
+      // basic xlsx parsing without SheetJS: use csv fallback message
+      document.getElementById('csvPreview').innerHTML = `<div class="alert alert-blue">For .xlsx files, please save as CSV first, then re-upload. Or paste data directly.</div>`;
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function showImportPreview(players, targetId, importFn) {
+  state.parsedImport = players;
+  const el = document.getElementById(targetId);
+  if (players.length === 0) { el.innerHTML = '<div class="alert alert-red">No players found. Check your column headers.</div>'; return; }
+  el.innerHTML = `
+    <div class="flex-between mb-3">
+      <span class="badge badge-green">${players.length} players found</span>
+      <button class="btn btn-orange btn-sm" onclick="importParsed('${targetId}')">Import ${players.length} Players</button>
+    </div>
+    <div style="max-height:180px;overflow-y:auto;border:1px solid var(--gray-200);border-radius:8px">
+      ${players.map(p=>`<div style="display:flex;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--gray-100);font-size:13px">
+        <strong>${p.name}</strong><span class="text-gray">${posLabel(p)}</span></div>`).join('')}
+    </div>`;
+}
+
+function importParsed(previewId) {
+  const tName = document.getElementById('teamNameInput').value.trim() || 'My Team';
+  state.teamName = tName;
+  state.parsedImport.forEach(p => {
+    state.players.push({ id: uid(), name: p.name, position: p.position, teamName: tName, stats: p.stats });
+  });
+  save();
+  renderPlayers();
+  updatePlanSelect();
+  document.getElementById(previewId).innerHTML = '';
+  state.parsedImport = [];
+  showToast(`✓ Imported players!`);
+  nav(document.querySelector('[data-page=players]'));
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PHOTO STAT SHEET SCAN
+// ═══════════════════════════════════════════════════════════════
+let photoBase64 = null;
+
+function handlePhotoDrop(e) {
+  e.preventDefault();
+  document.getElementById('photoDropzone').style.borderColor = 'var(--gray-200)';
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) loadPhotoPreview(file);
+}
+
+function handlePhotoSelect(input) {
+  if (input.files[0]) loadPhotoPreview(input.files[0]);
+}
+
+function loadPhotoPreview(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    photoBase64 = e.target.result; // full data URL
+    document.getElementById('photoPreviewImg').src = photoBase64;
+    document.getElementById('photoDropContent').style.display = 'none';
+    document.getElementById('photoPreviewWrap').style.display = 'block';
+    document.getElementById('photoStatus').innerHTML = '';
+    document.getElementById('photoResults').innerHTML = '';
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearPhoto() {
+  photoBase64 = null;
+  document.getElementById('photoInput').value = '';
+  document.getElementById('photoPreviewImg').src = '';
+  document.getElementById('photoDropContent').style.display = 'block';
+  document.getElementById('photoPreviewWrap').style.display = 'none';
+  document.getElementById('photoStatus').innerHTML = '';
+  document.getElementById('photoResults').innerHTML = '';
+}
+
+async function scanStatSheet() {
+  if (!state.apiKey) { alert('Enter your Anthropic API key in the banner above.'); return; }
+  if (!photoBase64) return;
+
+  const statusEl = document.getElementById('photoStatus');
+  const resultsEl = document.getElementById('photoResults');
+  document.getElementById('scanBtn').disabled = true;
+  statusEl.innerHTML = '<div class="alert alert-blue"><span class="loading-spinner"></span> Scanning stat sheet with AI…</div>';
+  resultsEl.innerHTML = '';
+
+  const base64Data = photoBase64.split(',')[1];
+  const mimeType = photoBase64.split(';')[0].split(':')[1];
+
+  const prompt = `You are a volleyball statistics assistant. This image contains a volleyball stat sheet.
+
+Extract ALL player statistics you can see and return them as a JSON object in this exact format:
+{
+  "players": [
+    {
+      "name": "Player Name",
+      "position": "Outside Hitter",
+      "kills": 12,
+      "attackAttempts": 35,
+      "attackErrors": 4,
+      "hittingPct": 0.229,
+      "blocks": 2,
+      "aces": 3,
+      "serveErrors": 1,
+      "assists": 0,
+      "digs": 8,
+      "receptionRating": 2.3,
+      "passingErrors": 1
+    }
+  ],
+  "notes": "Any observations about the stat sheet or fields you couldn't read clearly"
+}
+
+Rules:
+- Use null for any stat you cannot read clearly
+- If hitting % is not shown but kills/attempts/errors are, calculate it: (kills - errors) / attempts
+- Position should be one of: Setter, Outside Hitter, Middle Blocker, Opposite, Libero, Defensive Specialist, Right Side
+- If position is not shown, make your best guess from the stats (e.g. high assists = Setter, high digs = Libero)
+- Return only valid JSON, no markdown`;
+
+  try {
+    const res = await callClaude(null, {
+      model: 'claude-sonnet-4-5-20250929',
+      maxTokens: 2000,
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64Data } },
+        { type: 'text', text: prompt }
+      ]
+    });
+    const parsed = parseJSONResponse(res);
+    const players = parsed.players || [];
+
+    if (players.length === 0) {
+      statusEl.innerHTML = '<div class="alert alert-red">No players found in the image. Try a clearer photo.</div>';
+      return;
+    }
+
+    statusEl.innerHTML = `<div class="alert alert-green">✓ Found ${players.length} player${players.length !== 1 ? 's' : ''}! Review below then import.</div>`;
+    if (parsed.notes) {
+      statusEl.innerHTML += `<div class="alert alert-blue" style="margin-top:8px">📋 ${parsed.notes}</div>`;
+    }
+
+    // Render editable review table
+    resultsEl.innerHTML = `
+      <div style="overflow-x:auto;margin-bottom:14px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead>
+            <tr style="background:var(--gray-100)">
+              ${['Name','Position','Kills','Att.','Errors','Hit%','Blocks','Aces','Srv Err','Assists','Digs','Rcpt','Pass Err'].map(h =>
+                `<th style="padding:7px 10px;text-align:left;font-weight:600;color:var(--gray-700);white-space:nowrap">${h}</th>`
+              ).join('')}
+            </tr>
+          </thead>
+          <tbody id="scanResultsBody">
+            ${players.map((p, i) => `
+              <tr style="border-bottom:1px solid var(--gray-100)" id="scanRow-${i}">
+                <td style="padding:6px 10px"><input class="form-control" style="min-width:120px" value="${p.name || ''}" data-i="${i}" data-f="name"></td>
+                <td style="padding:6px 10px">
+                  <select class="form-control" style="min-width:130px" data-i="${i}" data-f="position">
+                    ${['Setter','Outside Hitter','Middle Blocker','Opposite','Libero','Defensive Specialist','Right Side'].map(pos =>
+                      `<option${hasPos(p, pos) ? ' selected' : ''}>${pos}</option>`
+                    ).join('')}
+                  </select>
+                </td>
+                ${['kills','attackAttempts','attackErrors','hittingPct','blocks','aces','serveErrors','assists','digs','receptionRating','passingErrors'].map(f =>
+                  `<td style="padding:6px 8px"><input class="form-control" style="width:64px" type="number" step="${f==='hittingPct'?'0.001':f==='receptionRating'?'0.01':'1'}" value="${p[f] ?? ''}" data-i="${i}" data-f="${f}"></td>`
+                ).join('')}
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <button class="btn btn-orange" onclick="importScannedStats()">
+        Import ${players.length} Player${players.length !== 1 ? 's' : ''}
+      </button>`;
+
+    // Store parsed players for import
+    state.parsedImport = players.map(p => ({
+      name: p.name || '',
+      position: p.position || 'Outside Hitter',
+      stats: Object.fromEntries(
+        ['kills','attackAttempts','attackErrors','hittingPct','blocks','aces','serveErrors','assists','digs','receptionRating','passingErrors']
+          .filter(f => p[f] != null)
+          .map(f => [f, p[f]])
+      )
+    }));
+
+  } catch(e) {
+    statusEl.innerHTML = `<div class="alert alert-red">Scan failed: ${e.message}</div>`;
+  } finally {
+    document.getElementById('scanBtn').disabled = false;
+  }
+}
+
+function importScannedStats() {
+  // Re-read edited values from the table before importing
+  const rows = document.querySelectorAll('#scanResultsBody tr');
+  const tName = document.getElementById('teamNameInput').value.trim() || 'My Team';
+  state.teamName = tName;
+  document.getElementById('teamName').textContent = tName;
+
+  rows.forEach(row => {
+    const inputs = row.querySelectorAll('input, select');
+    const player = { id: uid(), teamName: tName, stats: {} };
+    inputs.forEach(input => {
+      const f = input.dataset.f;
+      const val = input.value.trim();
+      if (f === 'name') player.name = val;
+      else if (f === 'position') player.position = val;
+      else if (val !== '') player.stats[f] = parseFloat(val);
+    });
+    if (player.name) {
+      if (!player.stats.hittingPct && player.stats.kills != null && player.stats.attackAttempts) {
+        player.stats.hittingPct = (player.stats.kills - (player.stats.attackErrors || 0)) / player.stats.attackAttempts;
+      }
+      if (Object.keys(player.stats).length === 0) player.stats = undefined;
+      state.players.push(player);
+    }
+  });
+
+  save();
+  renderPlayers();
+  updatePlanSelect();
+  clearPhoto();
+  showToast(`✓ Imported players from stat sheet!`);
+  nav(document.querySelector('[data-page=players]'));
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DRILLS
+// ═══════════════════════════════════════════════════════════════
+function renderDrills() {
+  const q = (document.getElementById('drillSearch')?.value||'').toLowerCase();
+  const cat = document.getElementById('drillCatFilter')?.value||'';
+  const activeTab = document.querySelector('#drillTabs .tab-btn.active')?.dataset.tab||'dt-all';
+
+  const all = allDrills().filter(d => {
+    const mq = d.name.toLowerCase().includes(q) || d.description.toLowerCase().includes(q);
+    const mc = !cat || d.category === cat;
+    return mq && mc;
+  });
+
+  document.getElementById('drillCount').textContent = `${allDrills().length} drills`;
+
+  const render = (list, elId) => {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    if (list.length === 0) { el.innerHTML = '<div class="empty-state"><p>No drills match</p></div>'; return; }
+    el.innerHTML = list.map(d => `
+      <div class="drill-card">
+        <div class="drill-meta">${diffBadge(d.difficulty)}<span class="badge badge-gray">${d.category}</span><span class="badge badge-blue">⏱ ${d.duration} min</span>${d.builtin?'':'<span class="badge badge-orange">Custom</span>'}</div>
+        <h4>${d.name}</h4>
+        <p>${d.description}</p>
+        ${d.skills?.length ? `<div style="margin-bottom:8px">${d.skills.map(s=>`<span class="tag">${s}</span>`).join('')}</div>` : ''}
+        <details>
+          <summary style="font-size:12px;color:var(--blue-600);font-weight:600;margin-bottom:6px">▶ Setup &amp; Coaching Points</summary>
+          ${d.setup ? `<div class="drill-detail"><strong>Setup:</strong> ${d.setup}</div>` : ''}
+          ${d.points?.length ? `<div class="drill-detail"><strong>Coaching Points:</strong><ul style="margin-top:4px;padding-left:16px">${d.points.map(pt=>`<li style="font-size:12px;color:var(--gray-600);margin-bottom:3px">${pt}</li>`).join('')}</ul></div>` : ''}
+        </details>
+      </div>`).join('');
+  };
+
+  render(all, 'drillGrid');
+  render(all.filter(d=>d.builtin), 'drillGridBuiltin');
+  render(all.filter(d=>!d.builtin), 'drillGridCustom');
+}
+
+function saveDrill() {
+  const name = document.getElementById('dnName').value.trim();
+  if (!name) { alert('Drill name is required'); return; }
+  const drill = {
+    id: uid(),
+    name, builtin: false,
+    category: document.getElementById('dnCat').value,
+    duration: parseInt(document.getElementById('dnDuration').value)||15,
+    difficulty: document.getElementById('dnDiff').value,
+    skills: document.getElementById('dnSkills').value.split(',').map(s=>s.trim()).filter(Boolean),
+    description: document.getElementById('dnDesc').value,
+    setup: document.getElementById('dnSetup').value,
+    points: document.getElementById('dnPoints').value.split('\n').map(s=>s.replace(/^•\s*/,'')).filter(Boolean),
+    visibility: document.getElementById('dnVis').value,
+  };
+  state.drills.push(drill);
+  save();
+  closeModal('drillModal');
+  renderDrills();
+  showToast('✓ Drill created!');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  AI — PLAYER ANALYSIS
+// ═══════════════════════════════════════════════════════════════
+async function analyzePlayer(id) {
+  if (!state.apiKey) { alert('Enter your Anthropic API key in the banner above.'); return; }
+  const p = state.players.find(x => x.id === id);
+  if (!p?.stats) { alert('Player has no stats.'); return; }
+  const s = p.stats;
+
+  showToast('🤖 Analyzing ' + p.name + '…', 0);
+
+  const prompt = `You are an expert volleyball coach analyst. Analyze these stats and return a JSON object.
+
+Player: ${p.name}
+Position: ${posLabel(p)}
+Kills: ${s.kills||0}, Attempts: ${s.attackAttempts||0}, Attack Errors: ${s.attackErrors||0},
+Hitting%: ${((s.hittingPct||0)*100).toFixed(1)}%, Blocks: ${s.blocks||0}, Aces: ${s.aces||0},
+Serve Errors: ${s.serveErrors||0}, Assists: ${s.assists||0}, Digs: ${s.digs||0},
+Reception Rating: ${s.receptionRating||0} (0-3 scale), Passing Errors: ${s.passingErrors||0}
+
+Return ONLY valid JSON with exactly this shape:
+{
+  "strengths": ["string","string","string"],
+  "weaknesses": ["string","string","string"],
+  "scoutingReport": "2-3 sentence scouting report",
+  "prioritized": [{"area":"weakness area","stat":"specific stat","impact":"high|medium|low"}]
+}
+
+Benchmarks: Good hitting%>0.250, Poor<0.150. Good reception>2.3, Poor<2.0. High error rate: errors/attempts>0.20.`;
+
+  try {
+    const res = await callClaude(prompt);
+    const analysis = parseJSONResponse(res);
+    p.analysis = analysis;
+    save();
+    renderPlayers();
+    updatePlanSelect();
+    clearToast();
+    showToast('✓ Analysis complete for ' + p.name);
+    openPlayerModal(id);
+  } catch(e) {
+    clearToast();
+    alert('Analysis failed: ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  AI — PRACTICE PLAN
+// ═══════════════════════════════════════════════════════════════
+function updatePlanSelect() {
+  const sel = document.getElementById('planPlayerSelect');
+  if (!sel) return;
+  const playersWithStats = state.players.filter(p => p.stats?.kills !== undefined);
+  sel.innerHTML = '<option value="">Select a player…</option>' +
+    playersWithStats.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+async function generatePlan() {
+  if (!state.apiKey) { alert('Enter your Anthropic API key in the banner above.'); return; }
+  const playerId = document.getElementById('planPlayerSelect').value;
+  if (!playerId) { alert('Select a player.'); return; }
+  const p = state.players.find(x => x.id === playerId);
+  if (!p?.stats) { alert('Player has no stats.'); return; }
+
+  const statusEl = document.getElementById('planGenStatus');
+  statusEl.innerHTML = '<div class="alert alert-blue"><span class="loading-spinner"></span> Generating personalized practice plan…</div>';
+  document.getElementById('genPlanBtn').disabled = true;
+
+  const drillList = allDrills().map(d =>
+    `ID:${d.id}|Name:${d.name}|Cat:${d.category}|Skills:${(d.skills||[]).join(',')}|Duration:${d.duration}min`
+  ).join('\n');
+
+  const s = p.stats;
+  const weaknesses = p.analysis?.prioritized?.map(w => `${w.area} (${w.impact} impact, stat: ${w.stat})`).join('\n') ||
+    p.analysis?.weaknesses?.join('\n') || 'Unknown - based on general stats';
+
+  const prompt = `You are an expert volleyball coach. Create a personalized 45-60 minute practice plan.
+
+Player: ${p.name}, Position: ${posLabel(p)}
+Hitting%: ${((s.hittingPct||0)*100).toFixed(1)}%, Reception: ${s.receptionRating||0}, Kills: ${s.kills||0}, Errors: ${s.attackErrors||0}, Digs: ${s.digs||0}
+Scouting: ${p.analysis?.scoutingReport||'No analysis yet'}
+Weaknesses: ${weaknesses}
+
+Available drills:
+${drillList}
+
+Return ONLY valid JSON:
+{
+  "title": "Plan title",
+  "totalMinutes": 50,
+  "focusAreas": ["area1","area2"],
+  "summary": "2-3 sentence summary",
+  "drills": [
+    {"id":"drill-id","name":"Drill Name","duration":15,"rationale":"Why this drill for this player","triggeringStat":"The stat that triggered this"}
+  ]
+}
+
+Select 3-5 drills from the list. Use exact IDs from the list. Each drill must have a rationale and triggeringStat.`;
+
+  try {
+    const res = await callClaude(prompt);
+    const plan = parseJSONResponse(res);
+    const planObj = {
+      id: uid(), playerId, playerName: p.name, aiGenerated: true,
+      title: plan.title, totalMinutes: plan.totalMinutes,
+      focusAreas: plan.focusAreas, notes: plan.summary,
+      drills: plan.drills.map((d,i) => {
+        const drill = allDrills().find(x => x.id === d.id) || allDrills().find(x => x.name === d.name);
+        return { name: drill?.name || d.name, duration: d.duration, rationale: d.rationale, triggeringStat: d.triggeringStat, order: i+1 };
+      }),
+    };
+    state.plans.unshift(planObj);
+    save();
+    renderPlans();
+    statusEl.innerHTML = '<div class="alert alert-green">✓ Practice plan generated! See below.</div>';
+  } catch(e) {
+    statusEl.innerHTML = `<div class="alert alert-red">Failed: ${e.message}</div>`;
+  } finally {
+    document.getElementById('genPlanBtn').disabled = false;
+  }
+}
+
+function renderPlans() {
+  document.getElementById('planCount').textContent = `${state.plans.length} plans`;
+  const el = document.getElementById('plansList');
+  if (state.plans.length === 0) {
+    el.innerHTML = '<div class="empty-state"><svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg><p>No practice plans yet</p><small>Generate one above</small></div>';
+    return;
+  }
+  el.innerHTML = state.plans.map(pl => `
+    <div class="plan-card">
+      <div class="plan-header">
+        <div>
+          <h3>${pl.title}</h3>
+          <div style="display:flex;gap:6px;margin-top:4px">
+            ${pl.focusAreas?.map(a=>`<span class="badge badge-gray">${a}</span>`).join('')||''}
+            ${pl.playerName ? `<span class="badge badge-blue">${pl.playerName}</span>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <span class="badge badge-blue">⏱ ${pl.totalMinutes} min</span>
+          ${pl.aiGenerated ? '<span class="badge badge-orange">AI</span>' : ''}
+          <button class="btn btn-ghost btn-sm" onclick="deletePlan('${pl.id}')">
+            <svg width="13" height="13" fill="none" stroke="var(--red)" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
+          </button>
+        </div>
+      </div>
+      ${pl.notes ? `<div style="padding:10px 18px;font-size:13px;color:var(--gray-600);background:var(--gray-50);font-style:italic">${pl.notes}</div>` : ''}
+      ${pl.drills.map((d,i) => `
+        <div class="plan-drill">
+          <div class="plan-num">${i+1}</div>
+          <div class="plan-drill-info">
+            <strong>${d.name}</strong> <span class="badge badge-gray" style="font-size:10px">${d.duration} min</span>
+            <div class="why">${d.rationale}</div>
+            ${d.triggeringStat ? `<div class="trigger">📊 Triggered by: ${d.triggeringStat}</div>` : ''}
+          </div>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function deletePlan(id) {
+  if (!confirm('Delete this practice plan?')) return;
+  state.plans = state.plans.filter(p => p.id !== id);
+  save();
+  renderPlans();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  AI — TEAM REPORT
+// ═══════════════════════════════════════════════════════════════
+async function generateTeamReport() {
+  if (!state.apiKey) { alert('Enter your Anthropic API key in the banner above.'); return; }
+  const withStats = state.players.filter(p => p.stats?.kills !== undefined);
+  if (withStats.length < 2) { alert('Add at least 2 players with stats first.'); return; }
+
+  const statusEl = document.getElementById('reportStatus');
+  statusEl.innerHTML = '<div class="alert alert-blue"><span class="loading-spinner"></span> Generating team report…</div>';
+
+  const summary = withStats.map(p => {
+    const s = p.stats;
+    return `${p.name}(${posLabel(p)}): hit${((s.hittingPct||0)*100).toFixed(1)}% rcpt${s.receptionRating||0} kills${s.kills||0} digs${s.digs||0} blocks${s.blocks||0} aces${s.aces||0}`;
+  }).join('\n');
+
+  const avgHit = withStats.reduce((s,p)=>s+(p.stats.hittingPct||0),0)/withStats.length;
+  const avgRcpt = withStats.reduce((s,p)=>s+(p.stats.receptionRating||0),0)/withStats.length;
+
+  const prompt = `You are an expert volleyball coach. Analyze this team.
+
+Team: ${state.teamName}, ${withStats.length} players
+Avg Hitting: ${(avgHit*100).toFixed(1)}%, Avg Reception: ${avgRcpt.toFixed(2)}
+
+Players:
+${summary}
+
+Return ONLY valid JSON:
+{
+  "teamStrengths": ["strength1","strength2","strength3"],
+  "teamWeaknesses": ["weakness1","weakness2","weakness3"],
+  "mostCommonWeaknesses": ["common1","common2"],
+  "suggestedFocus": ["focus1","focus2","focus3"],
+  "teamReport": "3-4 sentence team analysis"
+}`;
+
+  try {
+    const res = await callClaude(prompt);
+    const report = parseJSONResponse(res);
+    report.id = uid();
+    report.createdAt = new Date().toLocaleDateString();
+    report.teamName = state.teamName;
+    state.reports.unshift(report);
+    save();
+    renderReport(report);
+    statusEl.innerHTML = '<div class="alert alert-green">✓ Team report generated!</div>';
+  } catch(e) {
+    statusEl.innerHTML = `<div class="alert alert-red">Failed: ${e.message}</div>`;
+  }
+}
+
+function renderReport(r) {
+  const withStats = state.players.filter(p => p.stats?.kills !== undefined);
+  const avgHit = withStats.reduce((s,p)=>s+(p.stats.hittingPct||0),0)/Math.max(1,withStats.length);
+  const avgRcpt = withStats.reduce((s,p)=>s+(p.stats.receptionRating||0),0)/Math.max(1,withStats.length);
+
+  document.getElementById('reportContent').innerHTML = `
+  <div class="card mb-4">
+    <div class="card-header"><h3>Team Report — ${r.teamName}</h3><p>${r.createdAt}</p></div>
+    <div class="card-body pt-0">
+      <div class="scouting-report">${r.teamReport}</div>
+      <div class="stat-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:16px">
+        <div class="stat-tile"><div class="stat-tile-icon" style="background:var(--blue-50)">📊</div><div><h2>${(avgHit*100).toFixed(1)}%</h2><small>Avg Hitting %</small></div></div>
+        <div class="stat-tile"><div class="stat-tile-icon" style="background:var(--green-100)">📈</div><div><h2>${avgRcpt.toFixed(2)}</h2><small>Avg Reception</small></div></div>
+      </div>
+      <div class="two-col mb-4">
+        <div>
+          <p style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">▲ Team Strengths</p>
+          <ul class="strength-list" style="list-style:none">${r.teamStrengths.map(s=>`<li><span class="dot-green"></span>${s}</li>`).join('')}</ul>
+        </div>
+        <div>
+          <p style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:8px">▼ Team Weaknesses</p>
+          <ul class="weakness-list" style="list-style:none">${r.teamWeaknesses.map(w=>`<li><span class="dot-red"></span>${w}</li>`).join('')}</ul>
+        </div>
+      </div>
+      <p class="section-divider">Most Common Weaknesses Across Roster</p>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+        ${r.mostCommonWeaknesses.map(w=>`<span class="badge badge-yellow">${w}</span>`).join('')}
+      </div>
+      <p class="section-divider">Recommended Team Practice Focus</p>
+      ${r.suggestedFocus.map((f,i)=>`<div style="display:flex;gap:10px;align-items:flex-start;padding:10px;margin-bottom:6px;background:var(--blue-50);border-radius:8px">
+        <span style="width:22px;height:22px;background:var(--blue-600);color:#fff;border-radius:50%;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</span>
+        <p style="font-size:13px;color:var(--gray-700)">${f}</p></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ANTHROPIC (CLAUDE) HELPER
+// ═══════════════════════════════════════════════════════════════
+async function callClaude(prompt, opts = {}) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': state.apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: opts.model || 'claude-haiku-4-5-20251001',
+      max_tokens: opts.maxTokens || 2000,
+      temperature: 0.3,
+      messages: [{ role:'user', content: opts.content || prompt }],
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || 'Anthropic request failed');
+  }
+  const data = await res.json();
+  return data.content[0].text;
+}
+
+// Strips ```json ... ``` fences Claude sometimes wraps JSON responses in
+function parseJSONResponse(text) {
+  let t = text.trim();
+  const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fence) t = fence[1].trim();
+  return JSON.parse(t);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg, duration=3000) {
+  clearTimeout(toastTimer);
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#1e3a6e;color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,.25);z-index:999;transition:.3s;max-width:300px';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  t.style.transform = 'translateY(0)';
+  if (duration > 0) toastTimer = setTimeout(clearToast, duration);
+}
+function clearToast() {
+  const t = document.getElementById('toast');
+  if (t) { t.style.opacity = '0'; t.style.transform = 'translateY(10px)'; }
+}
+
+// resize charts on window resize
+window.addEventListener('resize', () => {
+  if (document.getElementById('page-dashboard').classList.contains('active')) renderDash();
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  PAGE TITLES (extend existing map)
+// ═══════════════════════════════════════════════════════════════
+PAGE_TITLES['match'] = 'Live Match';
+PAGE_TITLES['match-history'] = 'Match History';
+
+// ═══════════════════════════════════════════════════════════════
+//  OFFLINE / PWA DETECTION
+// ═══════════════════════════════════════════════════════════════
+function updateOnlineStatus() {
+  const offline = !navigator.onLine;
+  document.getElementById('offlineBanner').classList.toggle('show', offline);
+  document.getElementById('offlineBadge').style.display = offline ? 'inline' : 'none';
+  document.getElementById('onlineBadge').style.display = offline ? 'none' : 'inline';
+}
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
+
+// ═══════════════════════════════════════════════════════════════
+//  INDEXEDDB — offline-first match storage
+// ═══════════════════════════════════════════════════════════════
+let db = null;
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('VolleyAI', 2);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('matches'))
+        d.createObjectStore('matches', { keyPath: 'id' });
+      if (!d.objectStoreNames.contains('pendingSync'))
+        d.createObjectStore('pendingSync', { keyPath: 'id' });
+    };
+    req.onsuccess  = e => { db = e.target.result; resolve(db); };
+    req.onerror    = e => reject(e);
+  });
+}
+async function dbPut(store, obj)    { await openDB(); return new Promise((res,rej) => { const tx = db.transaction(store,'readwrite'); tx.objectStore(store).put(obj).onsuccess = () => res(); tx.onerror = rej; }); }
+async function dbGet(store, key)    { await openDB(); return new Promise((res,rej) => { const tx = db.transaction(store,'readonly'); const r = tx.objectStore(store).get(key); r.onsuccess = () => res(r.result); r.onerror = rej; }); }
+async function dbGetAll(store)      { await openDB(); return new Promise((res,rej) => { const tx = db.transaction(store,'readonly'); const r = tx.objectStore(store).getAll(); r.onsuccess = () => res(r.result); r.onerror = rej; }); }
+async function dbDelete(store, key) { await openDB(); return new Promise((res,rej) => { const tx = db.transaction(store,'readwrite'); tx.objectStore(store).delete(key).onsuccess = () => res(); tx.onerror = rej; }); }
+
+openDB(); // warm up on load
+
+// ═══════════════════════════════════════════════════════════════
+//  MATCH STATE
+// ═══════════════════════════════════════════════════════════════
+/*
+  match = {
+    id, opponent, date, tournament, location,
+    sets: [{ us:0, them:0, rallies:[], rotationLog:[] }],
+    currentSet: 0,
+    score: { us:0, them:0 },        // sets won
+    lineup: [null×6],               // positions 1-6, each { id, name, number, position }
+    bench: [],
+    subHistory: [],
+    playerStats: { [playerId]: { kills,errors,attempts,hittingPct,blocks,blockAssists,aces,serveErrors,serviceAttempts,assists,digs,passRating,passAttempts,passingErrors,ballHandlingErrors } }
+    rotation: 0,                    // 0-5, index of server (pos 1)
+    status: 'setup'|'live'|'ended',
+    createdAt, endedAt,
+    aiAnalysis: null
+  }
+*/
+let match = null;
+let actionTarget = null; // { playerId, posIndex } currently selected for stat entry
+
+const POS_NAMES   = ['','Position 1 (Server)','Position 2','Position 3','Position 4','Position 5','Position 6'];
+const POS_LABELS  = ['','P1','P2','P3','P4','P5','P6'];
+const POS_ABBREV  = { 'Outside Hitter':'OH', 'Middle Blocker':'MB', 'Opposite':'OPP', 'Setter':'S', 'Libero':'L', 'Defensive Specialist':'DS', 'Serving Specialist':'SS' };
+
+// Multi-position helpers
+// position may be a string (legacy) or array
+function hasPos(player, pos) {
+  if (!player) return false;
+  const p = player.position;
+  if (Array.isArray(p)) return p.includes(pos);
+  return p === pos;
+}
+function posDisplay(player) {
+  if (!player) return '—';
+  const p = player.position;
+  if (Array.isArray(p)) return p.map(x => POS_ABBREV[x] || x).join(' / ');
+  return p || '—';
+}
+function posLabel(player) {
+  // Full text list for display
+  if (!player) return '—';
+  const p = player.position;
+  if (Array.isArray(p)) return p.join(' / ');
+  return p || '—';
+}
+function primaryPos(player) {
+  if (!player) return '';
+  const p = player.position;
+  if (Array.isArray(p)) return p[0] || '';
+  return p || '';
+}
+
+// Visual court layout: rows [back-row right→left, front-row right→left] but displayed as grid
+// Display order in 3×2 grid (front row top when we're on our side):
+// Front row: P4  P3  P2
+// Back row:  P5  P6  P1
+const COURT_ORDER = [4, 3, 2, 5, 6, 1]; // grid cells top-left→right, then bottom-left→right
+
+// "Mia Torres" → "Mia T."
+function shortName(fullName) {
+  if (!fullName) return '?';
+  const parts = fullName.trim().split(' ');
+  return parts.length > 1 ? parts[0] + ' ' + parts[parts.length-1].charAt(0) + '.' : parts[0];
+}
+
+function blankPlayerStats() {
+  return { kills:0, errors:0, attempts:0, hittingPct:0, blocks:0, blockAssists:0, blockTouches:0, aces:0, serveErrors:0, serviceAttempts:0, assists:0, assistOpps:0, digs:0, ballHandlingErrors:0, passTotal:0, passAttempts:0, passingErrors:0 };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MATCH PAGE ROUTER
+// ═══════════════════════════════════════════════════════════════
+function renderMatchPage() {
+  if (!match || match.status === 'setup') renderMatchSetup();
+  else if (match.status === 'live')       renderLiveTracker();
+  else                                   renderMatchSummary(match);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MATCH SETUP
+// ═══════════════════════════════════════════════════════════════
+function renderMatchSetup() {
+  const players = [...state.players].sort((a, b) => {
+    const an = parseInt(a.number, 10), bn = parseInt(b.number, 10);
+    const av = isNaN(an) ? 100 : an, bv = isNaN(bn) ? 100 : bn;
+    return av - bv;
+  });
+  const el = document.getElementById('page-match');
+
+  if (!match) {
+    match = {
+      id: uid(), opponent:'', date: new Date().toISOString().slice(0,10),
+      tournament:'', location:'',
+      sets: [{ us:0, them:0, rallies:[], rotationLog:[] }],
+      currentSet: 0, score: { us:0, them:0 },
+      lineup: Array(6).fill(null),
+      libero: null,            // designated libero player obj
+      rotationSystem: '5-1',
+      setterAId: null,          // setter A (or only setter in 5-1)
+      setterBId: null,          // setter B (6-2 only)
+      setterAPlaysAround: true, // false = has a front-row sub
+      setterBPlaysAround: true,
+      setterASub: null,         // player id who subs in for setter A in front row
+      setterBSub: null,
+      setterASubOn: false,      // true = setter A's sub is currently on court
+      setterBSubOn: false,
+      subCount: 0,              // subs made this set (excludes libero swaps)
+      serveDesignation: 'bothMiddles',
+      servingMiddleId: null,   // when liberoServes: which MB is the serving one
+      bench: [...players],
+      subHistory: [], rotation: 0,
+      isServing: true,         // true = our team is currently serving
+      servePoints: 0,          // points scored while serving (this set)
+      receivePoints: 0,        // points scored while receiving / side-outs
+      playerStats: {}, undoStack: [], status:'setup', createdAt: new Date().toISOString()
+    };
+  }
+
+  el.innerHTML = `
+  <div class="page-title"><h1>New Match</h1><p>Set up your lineup before the match begins</p></div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px">
+    <div class="form-group"><label>Opponent *</label>
+      <input class="form-control" id="ms-opponent" value="${match.opponent}" placeholder="e.g. Lincoln High" oninput="match.opponent=this.value"></div>
+    <div class="form-group"><label>Date</label>
+      <input class="form-control" type="date" id="ms-date" value="${match.date}" oninput="match.date=this.value"></div>
+    <div class="form-group"><label>Tournament / League</label>
+      <input class="form-control" id="ms-tournament" value="${match.tournament}" placeholder="Optional" oninput="match.tournament=this.value"></div>
+    <div class="form-group"><label>Location</label>
+      <input class="form-control" id="ms-location" value="${match.location}" placeholder="Optional" oninput="match.location=this.value"></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div>
+
+      <!-- ── 1. STARTING LINEUP ── -->
+      <div class="section-divider">Starting Lineup (P1–P6) — tap a court slot then tap a player</div>
+      <div class="court-container" style="margin:0 auto 14px;max-width:340px">
+        <div class="court-net">— NET —</div>
+        <div class="court-grid" id="lineupSlots" style="margin-top:4px">
+          ${[4,3,2].map(posNum => setupCourtCell(posNum)).join('')}
+        </div>
+        <div class="court-grid" style="margin-top:6px">
+          ${[5,6,1].map(posNum => setupCourtCell(posNum)).join('')}
+        </div>
+      </div>
+
+      <!-- ── 2. STARTING ROTATION ── -->
+      <div class="section-divider" style="margin-top:12px">Starting Rotation</div>
+      <div style="margin-bottom:12px">
+        <select class="form-control" style="width:auto" onchange="match.rotation=parseInt(this.value,10)-1">
+          ${[1,2,3,4,5,6].map(n => `<option value="${n}" ${(match.rotation||0)+1===n?'selected':''}>Rotation ${n}</option>`).join('')}
+        </select>
+        <small style="color:var(--gray-400);font-size:11px;display:block;margin-top:4px">What rotation is the team starting the set in?</small>
+      </div>
+
+      <!-- ── 3. LIBERO ── -->
+      <div class="section-divider" style="margin-top:12px">Libero (auto-swaps with Middle in back row)</div>
+      <div class="lineup-slot ${match.libero?'filled':''}" id="lslot-libero" onclick="selectLineupSlot('libero')" style="border-color:${match.libero?'var(--orange-500,#f97316)':''}; background:${match.libero?'rgba(249,115,22,.06)':''}">
+        <span class="lineup-pos-label" style="color:#f97316;font-weight:700">LIBERO</span>
+        ${match.libero
+          ? `<div class="lineup-player-name">${match.libero.name}</div><div class="lineup-jersey">#${match.libero.number||'—'} · ${posLabel(match.libero)}</div>`
+          : `<div style="color:var(--gray-400);font-size:13px">Tap to assign libero (optional)</div>`}
+        ${match.libero ? `<button style="margin-left:auto" class="btn btn-ghost btn-sm" onclick="event.stopPropagation();clearLibero()">✕</button>` : ''}
+      </div>
+
+      <!-- ── 4. SERVING DESIGNATION ── -->
+      <div class="section-divider" style="margin-top:12px">Serving Designation</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="radio" name="serveDesig" value="bothMiddles" ${(match.serveDesignation||'bothMiddles')==='bothMiddles'?'checked':''} onchange="match.serveDesignation=this.value">
+          Both Middle Blockers serve
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="radio" name="serveDesig" value="liberoServes" ${match.serveDesignation==='liberoServes'?'checked':''} onchange="match.serveDesignation=this.value;renderMatchSetup()">
+          Libero serves (one Middle does not serve)
+        </label>
+      </div>
+      ${match.serveDesignation === 'liberoServes' ? (() => {
+        const middles = match.lineup.filter(p => p && hasPos(p, 'Middle Blocker'));
+        if (middles.length === 0) return '<p style="font-size:12px;color:var(--gray-400)">Assign Middle Blockers to the lineup first.</p>';
+        return `<div class="form-group" style="margin-bottom:12px">
+          <label style="font-size:12px;font-weight:600">Designated Serving Middle</label>
+          <select class="form-control" onchange="match.servingMiddleId=this.value">
+            <option value="">— select —</option>
+            ${middles.map(p => `<option value="${p.id}" ${match.servingMiddleId===p.id?'selected':''}>#${p.number||'?'} ${p.name}</option>`).join('')}
+          </select>
+          <small style="color:var(--gray-400);font-size:11px">This middle serves; the other is replaced by the libero in back row.</small>
+        </div>`;
+      })() : ''}
+
+      <!-- ── 5. SETTER CONFIG (optional) ── -->
+      ${(() => {
+        const lineupPlayers = match.lineup.filter(Boolean);
+        const benchPlayers  = match.bench || [];
+        const allAvail = [...lineupPlayers, ...benchPlayers];
+
+        function setterBlock(label, colorVar, idKey, playsAroundKey, subKey) {
+          const setterId = match[idKey];
+          const playsAround = match[playsAroundKey] !== false; // default true
+          const subId = match[subKey];
+          return `
+            <div style="border:1px solid var(--gray-200);border-radius:10px;padding:12px;margin-bottom:10px">
+              <div style="font-size:11px;font-weight:800;color:${colorVar};margin-bottom:6px">${label}</div>
+              <select class="form-control" style="font-size:12px;margin-bottom:8px" onchange="match['${idKey}']=this.value;renderMatchSetup()">
+                <option value="">— select player —</option>
+                ${allAvail.map(p => `<option value="${p.id}" ${setterId===p.id?'selected':''}>#${p.number||'?'} ${p.name} · ${posLabel(p)}</option>`).join('')}
+              </select>
+              ${setterId ? `
+              <div style="font-size:11px;margin-bottom:6px;font-weight:600">When in front row:</div>
+              <div style="display:flex;gap:8px;margin-bottom:8px">
+                <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px">
+                  <input type="radio" name="${playsAroundKey}" value="around" ${playsAround?'checked':''} onchange="match['${playsAroundKey}']=true;renderMatchSetup()">
+                  Plays all the way around
+                </label>
+                <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px">
+                  <input type="radio" name="${playsAroundKey}" value="sub" ${!playsAround?'checked':''} onchange="match['${playsAroundKey}']=false;renderMatchSetup()">
+                  Has a sub
+                </label>
+              </div>
+              ${!playsAround ? `
+                <select class="form-control" style="font-size:12px" onchange="match['${subKey}']=this.value">
+                  <option value="">— select front-row sub —</option>
+                  ${allAvail.filter(p => p.id !== setterId).map(p => `<option value="${p.id}" ${subId===p.id?'selected':''}>#${p.number||'?'} ${p.name} · ${posLabel(p)}</option>`).join('')}
+                </select>
+                <small style="color:var(--gray-400);font-size:10px">Auto-subbed in when ${label} rotates to front row.</small>
+              ` : ''}
+              ` : ''}
+            </div>`;
+        }
+
+        return `<div class="section-divider" style="margin-top:4px">Setter (optional)</div>
+          <div style="font-size:11px;color:var(--gray-500);margin-bottom:10px">If the setter has a front-row sub, they'll auto-swap in when the setter rotates front.</div>
+          ${setterBlock('Setter','var(--blue-600)','setterAId','setterAPlaysAround','setterASub')}`;
+      })()}
+
+      <!-- ── 6. SERVE / RECEIVE ── -->
+      <div class="section-divider" style="margin-top:4px">First Set — Starting On</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <div onclick="match.isServing=true;renderMatchSetup()" style="cursor:pointer;text-align:center;padding:10px;border-radius:10px;border:2px solid ${match.isServing!==false?'var(--blue-500)':'var(--gray-200)'};background:${match.isServing!==false?'var(--blue-50)':'#fff'}">
+          <div style="font-size:16px">🏐</div>
+          <div style="font-weight:700;font-size:13px;color:${match.isServing!==false?'var(--blue-600)':'var(--gray-700)'}">Serve</div>
+        </div>
+        <div onclick="match.isServing=false;renderMatchSetup()" style="cursor:pointer;text-align:center;padding:10px;border-radius:10px;border:2px solid ${match.isServing===false?'var(--blue-500)':'var(--gray-200)'};background:${match.isServing===false?'var(--blue-50)':'#fff'}">
+          <div style="font-size:16px">🤲</div>
+          <div style="font-weight:700;font-size:13px;color:${match.isServing===false?'var(--blue-600)':'var(--gray-700)'}">Receive</div>
+        </div>
+      </div>
+
+      <button class="btn btn-orange" style="width:100%;margin-top:4px;padding:12px" onclick="startMatch()" ${match.lineup.filter(Boolean).length < 6 ? 'disabled' : ''}>
+        Start Match →
+      </button>
+    </div>
+    <div>
+      <div class="section-divider">Available Players</div>
+      <div id="setupBench" style="display:flex;flex-direction:column;gap:6px">
+        ${players.length === 0
+          ? '<p style="color:var(--gray-400);font-size:13px">No players found. Add players first.</p>'
+          : players.map(p => {
+              const inLineup = match.lineup.find(l => l?.id === p.id);
+              const isLibero = match.libero?.id === p.id;
+              const used = inLineup || isLibero;
+              return `<div class="bench-player" style="${used?'opacity:.35;pointer-events:none':''}" onclick="assignToSelectedSlot('${p.id}')">
+                <span class="bnum">#${p.number||'?'}</span>
+                <strong style="font-size:13px">${p.name}</strong>
+                <span style="font-size:11px;color:var(--gray-500);margin-left:auto">${posLabel(p)||'—'}</span>
+              </div>`;
+            }).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  setupSelectedSlot = null;
+}
+
+function setupCourtCell(posNum) {
+  const player = match.lineup[posNum-1];
+  const isLibero = player ? hasPos(player, 'Libero') : false;
+  return `<div class="court-pos${isLibero?' libero-spot':''}" id="lslot-${posNum}" onclick="selectLineupSlot(${posNum})" title="${POS_NAMES[posNum]}">
+    ${player ? `<button style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,.3);border:none;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;line-height:1;cursor:pointer" onclick="event.stopPropagation();clearLineupSlot(${posNum})">✕</button>` : ''}
+    <div class="jersey">${player ? '#'+(player.number||'?') : ''}</div>
+    <div class="pname">${player ? shortName(player.name) : '<span style="opacity:.4;font-size:10px">Empty</span>'}</div>
+    ${player ? `<div class="pos-abbr">${posDisplay(player)}</div>` : ''}
+    <div class="pos-label">${POS_LABELS[posNum]}</div>
+  </div>`;
+}
+
+let setupSelectedSlot = null;
+function selectLineupSlot(posNum) {
+  setupSelectedSlot = posNum;
+  document.querySelectorAll('.lineup-slot, .court-pos').forEach(s => s.style.outline = '');
+  const el = document.getElementById(`lslot-${posNum === 'libero' ? 'libero' : posNum}`);
+  if (el) el.style.outline = '2px solid var(--blue-500)';
+}
+function clearLineupSlot(posNum) {
+  const prev = match.lineup[posNum-1];
+  if (prev) match.bench.push(prev);
+  match.lineup[posNum-1] = null;
+  renderMatchSetup();
+}
+function clearLibero() {
+  if (match.libero) match.bench.push(match.libero);
+  match.libero = null;
+  renderMatchSetup();
+}
+function assignToSelectedSlot(playerId) {
+  if (!setupSelectedSlot) { showToast('Tap a lineup slot first'); return; }
+  const player = state.players.find(p => p.id === playerId);
+  if (!player) return;
+  // remove from wherever they already are
+  match.lineup = match.lineup.map(l => l?.id === playerId ? null : l);
+  if (match.libero?.id === playerId) match.libero = null;
+  if (setupSelectedSlot === 'libero') {
+    match.libero = player;
+  } else {
+    match.lineup[setupSelectedSlot-1] = player;
+  }
+  match.bench = match.bench.filter(p => p.id !== playerId);
+  setupSelectedSlot = null;
+  renderMatchSetup();
+}
+
+function startMatch() {
+  if (match.lineup.filter(Boolean).length < 6) { showToast('Fill all 6 lineup positions first'); return; }
+  if (!match.opponent.trim()) { showToast('Enter opponent name'); return; }
+  match.status = 'live';
+  match.lineup.forEach(p => { if (p) match.playerStats[p.id] = blankPlayerStats(); });
+  match.bench.forEach(p => { match.playerStats[p.id] = blankPlayerStats(); });
+  if (match.libero) match.playerStats[match.libero.id] = blankPlayerStats();
+  match.liberoSubPosition = null;
+  match._liberoReplacedPlayer = null;
+
+  // Immediately apply libero swap if any middle is already in the back row at start
+  if (match.libero) {
+    for (let idx = 0; idx < match.lineup.length; idx++) {
+      const p = match.lineup[idx];
+      if (!p || !hasPos(p, 'Middle Blocker')) continue;
+      const courtPos = idx + 1; // rotation is 0 at start, so courtPos = idx+1
+      if (BACK_ROW_POS.has(courtPos)) {
+        match._liberoReplacedPlayer = p;
+        match.lineup[idx] = match.libero;
+        match.liberoSubPosition = idx;
+        break;
+      }
+    }
+  }
+
+  // Detect if a setter already has their sub on court at match start
+  // (e.g. Setter B starts on bench because their opposite is in the starting lineup)
+  [['setterAId','setterAPlaysAround','setterASub','setterASubOn'],
+   ['setterBId','setterBPlaysAround','setterBSub','setterBSubOn']].forEach(([idKey,,subKey,onKey]) => {
+    const setterId = match[idKey];
+    const subId    = match[subKey];
+    if (!setterId || !subId) return;
+    const setterInLineup = match.lineup.some(p => p?.id === setterId);
+    const subInLineup    = match.lineup.some(p => p?.id === subId);
+    if (!setterInLineup && subInLineup) match[onKey] = true; // sub started on court
+  });
+
+  document.getElementById('liveDot').style.display = 'inline-block';
+  saveMatchLocal();
+  renderLiveTracker();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SAVE / LOAD
+// ═══════════════════════════════════════════════════════════════
+async function saveMatchLocal() {
+  if (!match) return;
+  await dbPut('matches', match);
+  // also keep in state for quick access
+  const idx = state.matches ? state.matches.findIndex(m => m.id === match.id) : -1;
+  if (!state.matches) state.matches = [];
+  if (idx >= 0) state.matches[idx] = match; else state.matches.unshift(match);
+  localStorage.setItem('vai_matches', JSON.stringify(state.matches));
+}
+
+async function loadMatchesFromDB() {
+  const all = await dbGetAll('matches');
+  state.matches = all.sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt));
+  localStorage.setItem('vai_matches', JSON.stringify(state.matches));
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  LIVE TRACKER
+// ═══════════════════════════════════════════════════════════════
+function renderLiveTracker() {
+  if (!match || match.status !== 'live') return;
+  const el = document.getElementById('page-match');
+  const set = match.sets[match.currentSet];
+  const setNum = match.currentSet + 1;
+
+  // build set score badges
+  const setBadges = match.sets.slice(0,-1).map((s,i) => {
+    const won = s.us > s.them;
+    return `<span class="set-badge${won?' won':''}">${s.us}-${s.them}</span>`;
+  }).join('');
+
+  el.innerHTML = `
+  <div style="max-width:560px;margin:0 auto">
+
+  <!-- Score block -->
+  <div class="live-score-block">
+    <div class="live-teams-row">
+      <div class="live-team">
+        <div class="live-score-num">${set.us}</div>
+        <div class="live-team-name">${state.teamName||'Us'}</div>
+      </div>
+      <div class="live-colon">:</div>
+      <div class="live-team">
+        <div class="live-score-num">${set.them}</div>
+        <div class="live-team-name">${match.opponent||'Opponent'}</div>
+      </div>
+    </div>
+    <div class="live-status-row">
+      <span>Set ${setNum} · ${getRotationLabel()}</span>
+      <span class="live-serving-pill" style="${match.isServing!==false?'background:rgba(34,197,94,.3);color:#86efac':'background:rgba(255,255,255,.1);color:rgba(255,255,255,.65)'}">
+        ${match.isServing!==false?'🏐 Serving':'🤲 Receiving'}
+      </span>
+      <span>S:${match.servePoints||0} R:${match.receivePoints||0}</span>
+      ${setBadges}
+      <span class="set-badge" style="background:rgba(255,255,255,.2)">${match.score.us}-${match.score.them} sets</span>
+    </div>
+  </div>
+
+  <!-- Point buttons -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+    <button class="live-point-btn us" onclick="scorePoint('us')">▲ Our Point</button>
+    <button class="live-point-btn them" onclick="scorePoint('them')">▲ Their Point</button>
+  </div>
+
+  <!-- Controls bar -->
+  <div class="live-controls">
+    <select class="form-control" style="width:auto;font-size:12px;padding:5px 8px" onchange="setRotation(this.value)">
+      ${[1,2,3,4,5,6].map(n => `<option value="${n}" ${(match.rotation%6)+1===n?'selected':''}>Rot ${n}</option>`).join('')}
+    </select>
+    <button class="btn btn-outline btn-sm" onclick="rotateTeam()">↻ Rotate</button>
+    <button class="btn btn-sm" style="background:var(--blue-600);color:#fff" onclick="openSubModal()">⇄ Sub · ${match.subCount||0}/15</button>
+    <button class="btn btn-sm" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5" onclick="undoLastRally()">↩ Undo</button>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn btn-outline btn-sm" onclick="openEndSetModal()">End Set ${setNum}</button>
+      <button class="btn btn-sm" style="background:#dc2626;color:#fff" onclick="endMatch()">End Match</button>
+    </div>
+  </div>
+
+  <!-- Court -->
+  <div style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Court — tap player to record stat</div>
+  <div class="court-container" style="margin-bottom:12px">
+    <div id="courtContainer"></div>
+  </div>
+
+  <!-- Bench -->
+  <div style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Bench</div>
+  <div class="bench-strip" id="benchStrip" style="margin-bottom:16px"></div>
+
+  <!-- Stats (collapsible) -->
+  <details style="margin-bottom:16px">
+    <summary style="cursor:pointer;padding:10px 14px;background:var(--gray-50);border-radius:10px;border:1px solid var(--gray-200);font-size:12px;font-weight:700;color:var(--gray-600);list-style:none;display:flex;align-items:center;justify-content:space-between;-webkit-tap-highlight-color:transparent">
+      Set ${setNum} Stats <span style="opacity:.5;font-size:10px">tap to view ▾</span>
+    </summary>
+    <div style="overflow-x:auto;margin-top:8px;border-radius:10px;border:1px solid var(--gray-200);background:#fff">
+      <table class="live-stats-table" id="liveStatsTable">
+        <thead><tr>
+          <th>Player</th><th>K</th><th>E</th><th>TA</th><th>Hit%</th>
+          <th>Blk</th><th>SA</th><th>SE</th><th>Dig</th><th>Ast</th><th>Pass</th>
+        </tr></thead>
+        <tbody id="liveStatsBody"></tbody>
+      </table>
+    </div>
+  </details>
+
+  </div>`;
+
+  renderCourt();
+  renderBench();
+  renderLiveStatsTable();
+}
+
+function renderCourt() {
+  const container = document.getElementById('courtContainer');
+  if (!container) return;
+  // COURT_ORDER top row = front row [P4,P3,P2], bottom row = back row [P5,P6,P1]
+  const frontRow = [4, 3, 2];
+  const backRow  = [5, 6, 1];
+
+  function cellHtml(posNum, cellIdx) {
+    const lineupIdx = (posNum - 1 + match.rotation) % 6;
+    const player = match.lineup[lineupIdx];
+    const isServer = posNum === 1;
+    const isLibero = player ? hasPos(player, 'Libero') : false;
+    const abbrev = player ? posDisplay(player) : '';
+    const displayName = player ? shortName(player.name) : '';
+    return `<div class="court-pos${isLibero?' libero-spot':''}${isServer?' serving':''}"
+      onclick="openStatEntry('${player?.id||''}', ${cellIdx})" title="${POS_NAMES[posNum]}">
+      <div class="jersey">${player ? '#'+(player.number||'?') : ''}</div>
+      <div class="pname">${player ? displayName : '<span style="opacity:.4;font-size:10px">Empty</span>'}</div>
+      ${player ? `<div class="pos-abbr">${abbrev}</div>` : ''}
+      <div class="pos-label">${POS_LABELS[posNum]}</div>
+    </div>`;
+  }
+
+  container.innerHTML = `
+    <div class="court-net">— NET —</div>
+    <div class="court-grid" style="margin-top:4px">
+      ${frontRow.map((p, i) => cellHtml(p, i)).join('')}
+    </div>
+    <div class="court-grid" style="margin-top:6px">
+      ${backRow.map((p, i) => cellHtml(p, i + 3)).join('')}
+    </div>`;
+}
+
+function renderBench() {
+  const strip = document.getElementById('benchStrip');
+  if (!strip) return;
+  // include libero if they are off court
+  const extraPlayers = (match.libero && match.liberoSubPosition === null)
+    ? [{ ...match.libero, _isLibero: true }] : [];
+  const allBench = [...extraPlayers, ...match.bench];
+  strip.innerHTML = allBench.length === 0
+    ? '<span style="font-size:12px;color:var(--gray-400)">No bench players</span>'
+    : allBench.map(p => `<div class="bench-player${p._isLibero ? ' libero-spot' : ''}" onclick="openStatEntry('${p.id}', -1)" style="${p._isLibero?'border-color:rgba(249,115,22,.5)':''}">
+        <span class="bnum">#${p.number||'?'}</span>
+        <strong>${shortName(p.name)}</strong>
+        <span style="font-size:10px;color:var(--gray-400)">${p._isLibero ? 'L' : posDisplay(p)}</span>
+      </div>`).join('');
+}
+
+function renderLiveStatsTable() {
+  const tbody = document.getElementById('liveStatsBody');
+  if (!tbody) return;
+  const allPlayers = [...match.lineup.filter(Boolean), ...match.bench];
+  tbody.innerHTML = allPlayers.map(p => {
+    const s = match.playerStats[p.id] || blankPlayerStats();
+    const onCourt = match.lineup.some(l => l?.id === p.id);
+    const hp = s.attempts > 0 ? ((s.kills - s.errors) / s.attempts) : 0;
+    return `<tr>
+      <td><strong>${shortName(p.name)}</strong>${onCourt ? '' : ' <span style="font-size:10px;color:var(--gray-400)">(bench)</span>'}</td>
+      <td>${s.kills}</td><td>${s.errors}</td><td>${s.attempts}</td>
+      <td>${s.attempts>0?(hp>=0?'+':'')+hp.toFixed(3):'—'}</td>
+      <td>${s.blocks+s.blockAssists||0}</td>
+      <td>${s.aces}</td><td>${s.serveErrors}</td>
+      <td>${s.digs}</td><td>${s.assists}</td>
+      <td>${s.passAttempts>0?(s.passTotal/s.passAttempts).toFixed(2):'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  SCORING
+// ═══════════════════════════════════════════════════════════════
+function scorePoint(side, noRender) {
+  if (!match || match.status !== 'live') return;
+  const set = match.sets[match.currentSet];
+  const scoreBefore = { us: set.us, them: set.them };
+  const servingBefore = match.isServing;
+  const servePointsBefore = match.servePoints;
+  const receivePointsBefore = match.receivePoints;
+  set[side]++;
+  const ts = Date.now();
+
+  // track serve/receive counts and flip state
+  if (side === 'us') {
+    if (match.isServing) match.servePoints++;
+    else { match.receivePoints++; match.isServing = true; } // side-out, now serving
+  } else {
+    if (!match.isServing) ; // they score while we receive — stay receiving
+    else match.isServing = false; // they score while we serve — now receiving
+  }
+
+  set.rallies.push({ side, wasServing: servingBefore, timestamp: ts });
+
+  // push to undo stack for standalone score presses
+  if (!noRender) {
+    if (!match.undoStack) match.undoStack = [];
+    match.undoStack.push({ kind:'score', side, scoreBefore, servingBefore, servePointsBefore, receivePointsBefore, setIdx: match.currentSet, timestamp: ts });
+  }
+
+  // check set win
+  const deciding = match.currentSet >= 4;
+  const target = deciding ? 15 : 25;
+  const us = set.us, them = set.them;
+  const setOver = (us >= target || them >= target) && Math.abs(us - them) >= 2;
+
+  if (!noRender) {
+    saveMatchLocal();
+    renderLiveTracker();
+    if (setOver) openEndSetModal();
+  }
+  return setOver;
+}
+
+function undoLastRally() {
+  if (!match.undoStack) match.undoStack = [];
+  const last = match.undoStack.pop();
+  if (!last) { showToast('Nothing to undo'); return; }
+
+  if (last.kind === 'stat') {
+    if (last.playerId && match.playerStats[last.playerId]) {
+      match.playerStats[last.playerId] = { ...last.statsBefore };
+    }
+    const set = match.sets[last.setIdx];
+    if (set) {
+      set.us   = last.scoreBefore.us;
+      set.them = last.scoreBefore.them;
+      const ri = set.rallies.map(r=>r.timestamp).lastIndexOf(last.timestamp);
+      if (ri >= 0) set.rallies.splice(ri, 1);
+    }
+    if (last.servingBefore !== undefined) {
+      match.isServing      = last.servingBefore;
+      match.servePoints    = last.servePointsBefore;
+      match.receivePoints  = last.receivePointsBefore;
+    }
+    showToast('↩ Undid: ' + last.type.replace(/([A-Z])/g,' $1').toLowerCase());
+
+  } else if (last.kind === 'score') {
+    const set = match.sets[last.setIdx];
+    if (set) {
+      set.us   = last.scoreBefore.us;
+      set.them = last.scoreBefore.them;
+      const ri = set.rallies.map(r=>r.timestamp).lastIndexOf(last.timestamp);
+      if (ri >= 0) set.rallies.splice(ri, 1);
+    }
+    match.isServing     = last.servingBefore;
+    match.servePoints   = last.servePointsBefore;
+    match.receivePoints = last.receivePointsBefore;
+    showToast('↩ Undid: point for ' + last.side);
+
+  } else if (last.kind === 'sub') {
+    match.lineup[last.posIdx] = last.outPlayer;
+    match.bench = match.bench.filter(p => p.id !== last.outPlayer.id);
+    match.bench.push(last.inPlayer);
+    match.subHistory.pop();
+    if (last.subCountBefore !== undefined) match.subCount = last.subCountBefore;
+    showToast(`↩ Reversed sub: ${last.outPlayer.name} back in`);
+  }
+
+  saveMatchLocal();
+  renderLiveTracker();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ROTATION & SUBSTITUTIONS
+// ═══════════════════════════════════════════════════════════════
+// Front row court positions: P2, P3, P4 (1-indexed: 2,3,4)
+// Back row court positions:  P1, P5, P6 (1-indexed: 1,5,6)
+const FRONT_ROW_POS = new Set([2,3,4]);
+const BACK_ROW_POS  = new Set([1,5,6]);
+
+function getRotationLabel() {
+  if (!match) return '';
+  return `Rotation ${(match.rotation % 6) + 1}`;
+}
+
+function getPlayerCourtPos(playerId) {
+  // returns 1-indexed court position (1-6) or null
+  const idx = match.lineup.findIndex(p => p?.id === playerId);
+  if (idx < 0) return null;
+  // With rotation, actual court pos for lineup slot idx:
+  // lineup[idx] sits at court position ((idx - match.rotation + 6) % 6) + 1
+  return ((idx - match.rotation + 6) % 6) + 1;
+}
+
+function applyRotationSwaps() {
+  // Libero auto-swap
+  if (match.libero) {
+    if (match.liberoSubPosition !== null) {
+      // Libero is currently on court at lineup index liberoSubPosition.
+      // Check if that lineup slot has rotated to front row → swap middle back in
+      const courtPos = ((match.liberoSubPosition - match.rotation + 6) % 6) + 1;
+      if (FRONT_ROW_POS.has(courtPos)) {
+        // bring middle back
+        const middle = match._liberoReplacedPlayer;
+        if (middle) {
+          match.lineup[match.liberoSubPosition] = middle;
+          match.liberoSubPosition = null;
+          match._liberoReplacedPlayer = null;
+          showToast(`↺ ${shortName(middle.name)} back in (front row)`);
+        }
+      }
+    } else {
+      // Libero is on bench. Swap in for ANY middle blocker now in the back row.
+      for (let idx = 0; idx < match.lineup.length; idx++) {
+        const p = match.lineup[idx];
+        if (!p || !hasPos(p, 'Middle Blocker')) continue;
+        const courtPos = ((idx - match.rotation + 6) % 6) + 1;
+        if (BACK_ROW_POS.has(courtPos)) {
+          match._liberoReplacedPlayer = p;
+          match.lineup[idx] = match.libero;
+          match.liberoSubPosition = idx;
+          if (!match.playerStats[match.libero.id]) match.playerStats[match.libero.id] = blankPlayerStats();
+          showToast(`↺ ${shortName(match.libero.name)} in for ${shortName(p.name)}`);
+          break; // libero can only be in one place
+        }
+      }
+    }
+  }
+
+  // Setter front-row auto-sub
+  applySetterSubs();
+}
+
+function rotateTeam() {
+  match.rotation = (match.rotation + 1) % 6;
+  match.sets[match.currentSet].rotationLog.push({ rotation: match.rotation, time: Date.now() });
+
+  applyRotationSwaps();
+
+  saveMatchLocal();
+  renderLiveTracker();
+  const server = match.lineup[match.rotation % 6];
+  showToast('Rotated — ' + shortName(server?.name||'?') + ' serving');
+}
+
+function setRotation(value) {
+  const n = parseInt(value, 10);
+  if (!n || n < 1 || n > 6) return;
+  match.rotation = (n - 1) % 6;
+  match.sets[match.currentSet].rotationLog.push({ rotation: match.rotation, time: Date.now() });
+
+  applyRotationSwaps();
+
+  saveMatchLocal();
+  renderLiveTracker();
+  const server = match.lineup[match.rotation % 6];
+  showToast('Rotation ' + n + ' — ' + shortName(server?.name||'?') + ' serving');
+}
+
+function applySetterSubs() {
+  // For each configured setter (A and B), check if they just rotated to front row
+  // and have a sub assigned. If so, execute the sub (counts toward subCount).
+  [['setterAId','setterAPlaysAround','setterASub','setterASubOn'],
+   ['setterBId','setterBPlaysAround','setterBSub','setterBSubOn']].forEach(([idKey, aroundKey, subKey, onKey]) => {
+    const setterId = match[idKey];
+    if (!setterId || match[aroundKey] !== false) return; // plays around or not configured
+    const subId = match[subKey];
+    if (!subId) return;
+
+    const setterIdx = match.lineup.findIndex(p => p?.id === setterId);
+    const subInState = match[onKey]; // is sub currently on court?
+
+    if (setterIdx >= 0) {
+      // Setter is on court — check their court position
+      const courtPos = ((setterIdx - match.rotation + 6) % 6) + 1;
+      if (FRONT_ROW_POS.has(courtPos) && !subInState) {
+        // Setter just entered front row → bring sub in
+        const subPlayer = state.players.find(p => p.id === subId) || match.bench.find(p => p.id === subId);
+        if (subPlayer) {
+          match.bench.push(match.lineup[setterIdx]); // setter goes to bench
+          match.lineup[setterIdx] = subPlayer;
+          match.bench = match.bench.filter(p => p.id !== subId);
+          if (!match.playerStats[subPlayer.id]) match.playerStats[subPlayer.id] = blankPlayerStats();
+          match[onKey] = true;
+          match.subCount = (match.subCount || 0) + 1;
+          match.subHistory.push({ out: match.bench[match.bench.length-1]?.name||'Setter', in: subPlayer.name, set: match.currentSet+1, time: Date.now(), auto: true });
+          showToast(`↕ ${shortName(subPlayer.name)} in for setter (front row)`);
+        }
+      }
+    } else {
+      // Setter is off court (sub is on). Check if the sub is now in back row → setter back in
+      const subIdx = match.lineup.findIndex(p => p?.id === subId);
+      if (subIdx >= 0 && subInState) {
+        const courtPos = ((subIdx - match.rotation + 6) % 6) + 1;
+        if (BACK_ROW_POS.has(courtPos)) {
+          const setterPlayer = match.bench.find(p => p.id === setterId);
+          if (setterPlayer) {
+            match.bench.push(match.lineup[subIdx]); // sub goes back to bench
+            match.lineup[subIdx] = setterPlayer;
+            match.bench = match.bench.filter(p => p.id !== setterId);
+            match[onKey] = false;
+            match.subCount = (match.subCount || 0) + 1;
+            match.subHistory.push({ out: match.bench[match.bench.length-1]?.name||'Sub', in: setterPlayer.name, set: match.currentSet+1, time: Date.now(), auto: true });
+            showToast(`↕ ${shortName(setterPlayer.name)} back in (back row)`);
+          }
+        }
+      }
+    }
+  });
+}
+
+function openSubModal() {
+  const onCourt = match.lineup.filter(Boolean);
+  const onBench = match.bench;
+  const body = document.getElementById('subModalBody');
+  body.innerHTML = `
+    <p style="font-size:13px;color:var(--gray-600);margin-bottom:16px">Select the player coming <strong>OFF</strong> the court, then the player coming <strong>ON</strong>.</p>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Sub OUT (leaving court)</label>
+        <select class="form-control" id="subOutSel">
+          <option value="">— select —</option>
+          ${onCourt.map(p => `<option value="${p.id}">${p.name} #${p.number||'?'}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Sub IN (entering court)</label>
+        <select class="form-control" id="subInSel">
+          <option value="">— select —</option>
+          ${onBench.map(p => `<option value="${p.id}">${p.name} #${p.number||'?'}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-orange" onclick="confirmSub()">Confirm Substitution</button>
+    <div id="subError" style="margin-top:10px"></div>
+    ${match.subHistory.length > 0 ? `
+      <div class="section-divider">Sub History</div>
+      ${match.subHistory.slice(-6).reverse().map(s => `<div style="font-size:12px;color:var(--gray-600);padding:4px 0">${s.out} → ${s.in} (Set ${s.set})</div>`).join('')}` : ''}`;
+  openModal('subModal');
+}
+
+function confirmSub() {
+  const outId = document.getElementById('subOutSel').value;
+  const inId  = document.getElementById('subInSel').value;
+  if (!outId || !inId) { document.getElementById('subError').innerHTML = '<div class="alert alert-red">Select both players</div>'; return; }
+  const outPlayer = match.lineup.find(p => p?.id === outId);
+  const inPlayer  = match.bench.find(p => p.id === inId);
+  if (!outPlayer || !inPlayer) return;
+
+  const posIdx = match.lineup.findIndex(p => p?.id === outId);
+  match.lineup[posIdx] = inPlayer;
+  match.bench = match.bench.filter(p => p.id !== inId);
+  match.bench.push(outPlayer);
+  if (!match.playerStats[inPlayer.id]) match.playerStats[inPlayer.id] = blankPlayerStats();
+  const subEntry = { out: outPlayer.name, in: inPlayer.name, set: match.currentSet+1, time: Date.now() };
+  match.subHistory.push(subEntry);
+  match.subCount = (match.subCount || 0) + 1;
+
+  // push to undo stack (include subCount so undo can restore it)
+  if (!match.undoStack) match.undoStack = [];
+  match.undoStack.push({ kind:'sub', posIdx, outPlayer, inPlayer, subCountBefore: match.subCount - 1, timestamp: Date.now() });
+
+  closeModal('subModal');
+  saveMatchLocal();
+  renderLiveTracker();
+  showToast(`${inPlayer.name} in for ${outPlayer.name}`);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  STAT ENTRY — action sheet
+// ═══════════════════════════════════════════════════════════════
+function openStatEntry(playerId, posIdx) {
+  if (!playerId) return;
+  const player = [...match.lineup.filter(Boolean), ...match.bench].find(p => p.id === playerId);
+  if (!player) return;
+  actionTarget = { playerId, posIdx };
+  const s = match.playerStats[playerId] || blankPlayerStats();
+
+  const content = document.getElementById('actionSheetContent');
+  const isLibero = hasPos(player, 'Libero');
+  const isDS = hasPos(player, 'Defensive Specialist');
+  const isSetter = hasPos(player, 'Setter');
+  const isBackRowSpec = isLibero || isDS;
+
+  content.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--gray-100)">
+      <div class="avatar" style="font-size:18px;width:44px;height:44px;flex-shrink:0">${player.name.charAt(0)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:17px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${player.name}</div>
+        <div style="font-size:12px;color:var(--gray-400)">#${player.number||'?'} · ${posLabel(player)||'—'}</div>
+      </div>
+      <div style="text-align:right;font-size:11px;color:var(--gray-400);line-height:1.6">
+        ${isBackRowSpec ? `Digs:${s.digs} Aces:${s.aces}` : `K:${s.kills} E:${s.errors} Digs:${s.digs}`}
+      </div>
+    </div>
+
+    ${isBackRowSpec ? `
+      <p style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Defense</p>
+      <div class="stat-action-grid cols-2" style="margin-bottom:16px">
+        <button class="stat-btn blue"   onclick="recordStat('dig')">Dig<div class="stat-btn-label">Save</div></button>
+        <button class="stat-btn red"    onclick="recordStat('ballHandlingError')">BHE<div class="stat-btn-label">Error</div></button>
+      </div>
+      <p style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Setting</p>
+      <div class="stat-action-grid cols-2" style="margin-bottom:16px">
+        <button class="stat-btn green"  onclick="recordStat('assist')">Assist<div class="stat-btn-label">Set→kill</div></button>
+        <button class="stat-btn gray"   onclick="recordStat('assistOpp')">Ast Opp<div class="stat-btn-label">Out-of-system</div></button>
+      </div>
+      <p style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Serving</p>
+      <div class="stat-action-grid cols-3" style="margin-bottom:16px">
+        <button class="stat-btn green"  onclick="recordStat('ace')">Ace<div class="stat-btn-label">Point</div></button>
+        <button class="stat-btn gray"   onclick="recordStat('serveIn')">In<div class="stat-btn-label">In play</div></button>
+        <button class="stat-btn red"    onclick="recordStat('serveError')">Error<div class="stat-btn-label">Out/Net</div></button>
+      </div>
+      <p style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Pass Rating</p>
+      <div class="stat-action-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;margin-bottom:20px">
+        <button class="stat-btn green"  onclick="recordStat('pass3')">3<div class="stat-btn-label">Perfect</div></button>
+        <button class="stat-btn blue"   onclick="recordStat('pass2')">2<div class="stat-btn-label">Good</div></button>
+        <button class="stat-btn yellow" onclick="recordStat('pass1')">1<div class="stat-btn-label">Poor</div></button>
+        <button class="stat-btn red"    onclick="recordStat('pass0')">0<div class="stat-btn-label">Ace allowed</div></button>
+      </div>
+    ` : `
+      ${isSetter ? `
+        <p style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Setting</p>
+        <div class="stat-action-grid cols-3" style="margin-bottom:16px">
+          <button class="stat-btn green"  onclick="recordStat('assist')">Assist<div class="stat-btn-label">Set→kill</div></button>
+          <button class="stat-btn gray"   onclick="recordStat('assistOpp')">Ast Opp<div class="stat-btn-label">Set attempt</div></button>
+          <button class="stat-btn red"    onclick="recordStat('ballHandlingError')">BHE<div class="stat-btn-label">Error</div></button>
+        </div>` : ''}
+
+      <p style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Attack</p>
+      <div class="stat-action-grid cols-3" style="margin-bottom:16px">
+        <button class="stat-btn green" onclick="recordStat('kill')">Kill<div class="stat-btn-label">Point</div></button>
+        <button class="stat-btn red"   onclick="recordStat('attackError')">Error<div class="stat-btn-label">Out/Net</div></button>
+        <button class="stat-btn blue"  onclick="recordStat('attempt')">Attempt<div class="stat-btn-label">Dug/Blocked</div></button>
+      </div>
+
+      <p style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Serve</p>
+      <div class="stat-action-grid cols-3" style="margin-bottom:16px">
+        <button class="stat-btn green"  onclick="recordStat('ace')">Ace<div class="stat-btn-label">Point</div></button>
+        <button class="stat-btn gray"   onclick="recordStat('serveIn')">In<div class="stat-btn-label">In play</div></button>
+        <button class="stat-btn red"    onclick="recordStat('serveError')">Error<div class="stat-btn-label">Out/Net</div></button>
+      </div>
+
+      <p style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Pass Rating</p>
+      <div class="stat-action-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;margin-bottom:16px">
+        <button class="stat-btn green"  onclick="recordStat('pass3')">3<div class="stat-btn-label">Perfect</div></button>
+        <button class="stat-btn blue"   onclick="recordStat('pass2')">2<div class="stat-btn-label">Good</div></button>
+        <button class="stat-btn yellow" onclick="recordStat('pass1')">1<div class="stat-btn-label">Poor</div></button>
+        <button class="stat-btn red"    onclick="recordStat('pass0')">0<div class="stat-btn-label">Ace allowed</div></button>
+      </div>
+
+      <p style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Block</p>
+      <div class="stat-action-grid cols-3" style="margin-bottom:16px">
+        <button class="stat-btn green"  onclick="recordStat('soloBlock')">Solo<div class="stat-btn-label">Point</div></button>
+        <button class="stat-btn blue"   onclick="recordStat('blockAssist')">Assist<div class="stat-btn-label">Shared</div></button>
+        <button class="stat-btn gray"   onclick="recordStat('blockTouch')">Touch<div class="stat-btn-label">Slowed</div></button>
+      </div>
+
+      <p style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Defense${isSetter ? '' : ' & Setting'}</p>
+      <div class="stat-action-grid cols-2" style="margin-bottom:20px">
+        <button class="stat-btn blue"   onclick="recordStat('dig')">Dig<div class="stat-btn-label">Save</div></button>
+        <button class="stat-btn red"    onclick="recordStat('ballHandlingError')">BHE<div class="stat-btn-label">Error</div></button>
+        ${!isSetter ? `
+        <button class="stat-btn green"  onclick="recordStat('assist')">Assist<div class="stat-btn-label">Set→kill</div></button>
+        <button class="stat-btn gray"   onclick="recordStat('assistOpp')">Ast Opp<div class="stat-btn-label">Set attempt</div></button>` : ''}
+      </div>
+    `}`;
+
+  openActionSheet();
+}
+
+function openActionSheet() {
+  const sheet = document.getElementById('actionSheet');
+  const panel = document.getElementById('actionSheetPanel');
+  sheet.style.display = 'block';
+  requestAnimationFrame(() => { panel.style.transform = 'translateY(0)'; });
+}
+function closeActionSheet() {
+  const panel = document.getElementById('actionSheetPanel');
+  panel.style.transform = 'translateY(100%)';
+  setTimeout(() => { document.getElementById('actionSheet').style.display = 'none'; }, 260);
+}
+
+function recordStat(type) {
+  if (!actionTarget) { showToast('No player selected'); return; }
+  const { playerId } = actionTarget;
+  if (!match.playerStats[playerId]) match.playerStats[playerId] = blankPlayerStats();
+  const s = match.playerStats[playerId];
+
+  // snapshot stats BEFORE the change so undo can restore them
+  const statsBefore = { ...s };
+  const set = match.sets[match.currentSet];
+  const scoreBefore = { us: set.us, them: set.them };
+  const servingBefore = match.isServing;
+  const servePointsBefore = match.servePoints;
+  const receivePointsBefore = match.receivePoints;
+
+  let scoringSide = null;
+  switch(type) {
+    case 'kill':              s.kills++; s.attempts++; scoringSide = 'us'; break;
+    case 'attackError':       s.errors++; s.attempts++; scoringSide = 'them'; break;
+    case 'attempt':           s.attempts++; break;
+    case 'ace':               s.aces++; s.serviceAttempts++; scoringSide = 'us'; break;
+    case 'serveIn':           s.serviceAttempts++; break;
+    case 'serveError':        s.serveErrors++; s.serviceAttempts++; scoringSide = 'them'; break;
+    case 'pass3':             s.passTotal+=3; s.passAttempts++; break;
+    case 'pass2':             s.passTotal+=2; s.passAttempts++; break;
+    case 'pass1':             s.passTotal+=1; s.passAttempts++; break;
+    case 'pass0':             s.passAttempts++; s.passingErrors++; scoringSide = 'them'; break;
+    case 'soloBlock':         s.blocks++; scoringSide = 'us'; break;
+    case 'blockAssist':       s.blockAssists++; break;
+    case 'blockTouch':        s.blockTouches++; break;
+    case 'dig':               s.digs++; break;
+    case 'ballHandlingError': s.ballHandlingErrors++; break;
+    case 'assist':            s.assists++; break;
+    case 'assistOpp':         s.assistOpps++; break;
+  }
+
+  // apply score change
+  let setOver = false;
+  if (scoringSide) setOver = scorePoint(scoringSide, true);
+
+  // recalculate hitting pct
+  if (s.attempts > 0) s.hittingPct = (s.kills - s.errors) / s.attempts;
+  else s.hittingPct = 0;
+
+  // push undo entry
+  if (!match.undoStack) match.undoStack = [];
+  match.undoStack.push({
+    kind: 'stat',
+    playerId,
+    statsBefore,
+    scoreBefore,
+    servingBefore,
+    servePointsBefore,
+    receivePointsBefore,
+    type,
+    setIdx: match.currentSet,
+    timestamp: Date.now()
+  });
+
+  closeActionSheet();
+  saveMatchLocal();
+  renderLiveTracker();
+  if (setOver) setTimeout(() => openEndSetModal(), 300);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  END SET / END MATCH
+// ═══════════════════════════════════════════════════════════════
+function openEndSetModal() {
+  const set = match.sets[match.currentSet];
+  const setNum = match.currentSet + 1;
+  const usWon = set.us > set.them;
+  document.getElementById('endSetTitle').textContent = `End Set ${setNum}`;
+  document.getElementById('endSetBody').innerHTML = `
+    <div style="text-align:center;margin-bottom:20px">
+      <div style="font-size:48px;font-weight:900">${set.us} – ${set.them}</div>
+      <div style="font-size:15px;font-weight:700;color:${usWon?'var(--green)':'var(--red)'};margin-top:6px">
+        ${usWon ? '✓ Set Won' : '✗ Set Lost'}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <button class="btn btn-orange" style="width:100%;padding:12px;font-size:15px" onclick="confirmEndSet()">
+        Confirm — Start Set ${setNum+1}
+      </button>
+      <button class="btn btn-danger" style="width:100%;padding:10px" onclick="closeModal('endSetModal');endMatch()">
+        End Match (Final Set)
+      </button>
+      <button class="btn btn-outline" style="width:100%" onclick="closeModal('endSetModal')">
+        Cancel — Continue Set ${setNum}
+      </button>
+    </div>`;
+  openModal('endSetModal');
+}
+
+function confirmEndSet() {
+  const set = match.sets[match.currentSet];
+  if (set.us > set.them) match.score.us++; else match.score.them++;
+  match.currentSet++;
+  match.sets.push({ us:0, them:0, rallies:[], rotationLog:[] });
+  // serve/receive flips between sets
+  match.isServing     = !match.isServing;
+  match.servePoints   = 0;
+  match.receivePoints = 0;
+  match.subCount      = 0;
+  match.setterASubOn  = false;
+  match.setterBSubOn  = false;
+  match.undoStack     = [];
+  closeModal('endSetModal');
+  saveMatchLocal();
+  renderLiveTracker();
+  showToast(`Set ${match.currentSet} started`);
+}
+
+function endMatch() {
+  if (!confirm('End the match? This will finalize all stats.')) return;
+  const set = match.sets[match.currentSet];
+  if (set.us > 0 || set.them > 0) {
+    if (set.us > set.them) match.score.us++; else match.score.them++;
+  }
+  match.status = 'ended';
+  match.endedAt = new Date().toISOString();
+  document.getElementById('liveDot').style.display = 'none';
+
+  // push player stats into main state.players for dashboard / analysis
+  [...match.lineup.filter(Boolean), ...match.bench].forEach(mp => {
+    const sp = state.players.find(p => p.id === mp.id);
+    if (!sp) return;
+    const ms = match.playerStats[mp.id];
+    if (!ms) return;
+    sp.stats = {
+      kills:           ms.kills,
+      attackAttempts:  ms.attempts,
+      attackErrors:    ms.errors,
+      hittingPct:      ms.attempts > 0 ? (ms.kills - ms.errors) / ms.attempts : 0,
+      blocks:          ms.blocks + ms.blockAssists,
+      aces:            ms.aces,
+      serveErrors:     ms.serveErrors,
+      assists:         ms.assists,
+      digs:            ms.digs,
+      receptionRating: ms.passAttempts > 0 ? ms.passTotal / ms.passAttempts : 0,
+      passingErrors:   ms.passingErrors,
+    };
+  });
+  save();
+  saveMatchLocal();
+  renderMatchSummary(match);
+  nav(document.querySelector('[data-page=match-history]'));
+  showToast('Match saved! Run AI Analysis from Match History.');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MATCH SUMMARY
+// ═══════════════════════════════════════════════════════════════
+function renderMatchSummary(m) {
+  // Redirect to history page
+  renderMatchHistory();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MATCH HISTORY PAGE
+// ═══════════════════════════════════════════════════════════════
+async function renderMatchHistory() {
+  await loadMatchesFromDB();
+  const el = document.getElementById('matchHistoryList');
+  if (!el) return;
+  const matches = state.matches || [];
+  if (matches.length === 0) {
+    el.innerHTML = '<div class="empty-state"><svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg><p>No matches tracked yet</p><small>Use Live Match to track your next game</small></div>';
+    return;
+  }
+  el.innerHTML = matches.map(m => {
+    const won = m.score.us > m.score.them;
+    const sets = m.sets.filter(s => s.us > 0 || s.them > 0);
+    const setScores = sets.map(s => `${s.us}-${s.them}`).join(', ');
+    const allPlayers = [...(m.lineup||[]).filter(Boolean), ...(m.bench||[])];
+    return `<div class="match-card">
+      <div class="match-card-header">
+        <div>
+          <div style="font-size:13px;font-weight:700">${m.opponent||'Unknown Opponent'}</div>
+          <div style="font-size:11px;color:var(--gray-500)">${m.date||''} ${m.tournament?'· '+m.tournament:''}</div>
+          <div style="font-size:11px;color:var(--gray-400);margin-top:2px">Sets: ${setScores||'—'}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <div class="match-result ${won?'win':'loss'}">${m.score.us}–${m.score.them}</div>
+          <span class="badge ${won?'badge-green':'badge-red'}">${won?'Win':'Loss'}</span>
+        </div>
+      </div>
+      <div style="padding:10px 18px;border-top:1px solid var(--gray-100);display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="showMatchDetail('${m.id}')">View Stats</button>
+        ${!m.aiAnalysis && m.status==='ended'
+          ? `<button class="btn btn-orange btn-sm" onclick="generateMatchAnalysis('${m.id}')">⚡ AI Analysis + Practice Plan</button>`
+          : m.aiAnalysis ? `<button class="btn btn-outline btn-sm" onclick="showMatchDetail('${m.id}')">View AI Report</button>` : ''}
+        <button class="btn btn-ghost btn-sm" onclick="resumeMatchSetup('${m.id}')" style="${m.status==='live'?'':'display:none'}">Resume Live</button>
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto;color:var(--red)" onclick="deleteMatch('${m.id}')">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+          Delete
+        </button>
+      </div>
+      ${m.aiAnalysis ? `<div style="padding:10px 18px;background:var(--blue-50);border-top:1px solid var(--blue-100);font-size:12px;color:var(--blue-700)">✓ AI Analysis complete — practice plan generated</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function deleteMatch(matchId) {
+  if (!confirm('Delete this match? This cannot be undone.')) return;
+
+  await dbDelete('matches', matchId);
+  if (match && match.id === matchId) { match = null; }
+
+  // Reload from IndexedDB so state.matches has complete playerStats for remaining matches
+  await loadMatchesFromDB();
+
+  recomputePlayerStatsFromMatches();
+  save();
+  renderMatchHistory();
+  renderPlayers();
+  renderDash();
+}
+
+function recomputePlayerStatsFromMatches() {
+  const ended = (state.matches || [])
+    .filter(m => m.status === 'ended')
+    .sort((a, b) => new Date(b.endedAt || b.createdAt) - new Date(a.endedAt || a.createdAt));
+
+  // When no matches exist at all, wipe every player's match-derived stats
+  if (ended.length === 0) {
+    state.players.forEach(sp => { delete sp.stats; });
+    return;
+  }
+
+  state.players.forEach(sp => {
+    let found = false;
+    for (const m of ended) {
+      const inMatch = [...(m.lineup || []).filter(Boolean), ...(m.bench || [])];
+      if (inMatch.some(p => p.id === sp.id) && m.playerStats?.[sp.id]) {
+        const ms = m.playerStats[sp.id];
+        sp.stats = {
+          kills:           ms.kills,
+          attackAttempts:  ms.attempts,
+          attackErrors:    ms.errors,
+          hittingPct:      ms.attempts > 0 ? (ms.kills - ms.errors) / ms.attempts : 0,
+          blocks:          ms.blocks + ms.blockAssists,
+          aces:            ms.aces,
+          serveErrors:     ms.serveErrors,
+          assists:         ms.assists,
+          digs:            ms.digs,
+          receptionRating: ms.passAttempts > 0 ? ms.passTotal / ms.passAttempts : 0,
+          passingErrors:   ms.passingErrors,
+        };
+        found = true;
+        break;
+      }
+    }
+    if (!found) delete sp.stats;
+  });
+}
+
+function showMatchDetail(matchId) {
+  const m = (state.matches||[]).find(x => x.id === matchId);
+  if (!m) return;
+  const allPlayers = [...(m.lineup||[]).filter(Boolean), ...(m.bench||[])];
+  const rows = allPlayers.map(p => {
+    const s = m.playerStats?.[p.id];
+    if (!s) return '';
+    const hp = s.attempts > 0 ? (s.kills - s.errors)/s.attempts : 0;
+    const pass = s.passAttempts > 0 ? (s.passTotal/s.passAttempts).toFixed(2) : '—';
+    return `<tr><td><strong>${p.name}</strong></td><td>${s.kills}</td><td>${s.errors}</td><td>${s.attempts}</td>
+      <td>${s.attempts>0?(hp>=0?'+':'')+hp.toFixed(3):'—'}</td>
+      <td>${s.blocks}</td><td>${s.blockAssists}</td><td>${s.aces}</td><td>${s.serveErrors}</td>
+      <td>${s.digs}</td><td>${s.assists}</td><td>${pass}</td></tr>`;
+  }).join('');
+
+  const won = m.score.us > m.score.them;
+  const sets = m.sets.filter(s => s.us > 0 || s.them > 0);
+
+  document.getElementById('modalPlayerName').textContent = `vs ${m.opponent} — ${m.date||''}`;
+  document.getElementById('modalPlayerBody').innerHTML = `
+    <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px">
+      <div style="font-size:32px;font-weight:900;color:${won?'var(--green)':'var(--red)'}">${m.score.us}–${m.score.them}</div>
+      <div>
+        <div class="badge ${won?'badge-green':'badge-red'}" style="margin-bottom:4px">${won?'Win':'Loss'}</div><br>
+        <span style="font-size:12px;color:var(--gray-500)">Sets: ${sets.map(s=>`${s.us}-${s.them}`).join(', ')}</span>
+      </div>
+    </div>
+    ${m.aiAnalysis ? `
+      <div class="section-divider">AI Match Analysis</div>
+      <div class="scouting-report">${m.aiAnalysis.matchReport}</div>
+      <div class="two-col" style="margin-bottom:14px">
+        <div><p style="font-size:12px;font-weight:700;color:var(--green);margin-bottom:8px">▲ Strengths</p>
+          <ul style="list-style:none">${(m.aiAnalysis.strengths||[]).map(s=>`<li class="strength-list"><span class="dot-green"></span>${s}</li>`).join('')}</ul></div>
+        <div><p style="font-size:12px;font-weight:700;color:var(--red);margin-bottom:8px">▼ Weaknesses</p>
+          <ul style="list-style:none">${(m.aiAnalysis.weaknesses||[]).map(w=>`<li class="weakness-list"><span class="dot-red"></span>${w}</li>`).join('')}</ul></div>
+      </div>
+      ${m.aiAnalysis.practicePlan ? `
+        <div class="section-divider">Generated Practice Plan</div>
+        <div class="plan-card">
+          <div class="plan-header"><h3>${m.aiAnalysis.practicePlan.title}</h3><span class="badge badge-blue">${m.aiAnalysis.practicePlan.totalMinutes} min</span></div>
+          ${(m.aiAnalysis.practicePlan.drills||[]).map((d,i)=>`<div class="plan-drill">
+            <div class="plan-num">${i+1}</div>
+            <div class="plan-drill-info"><strong>${d.name}</strong> <span class="badge badge-gray">${d.duration} min</span>
+              <div class="why">${d.rationale}</div>
+              ${d.triggeringStat?`<div class="trigger">📊 ${d.triggeringStat}</div>`:''}
+            </div></div>`).join('')}
+        </div>` : ''}` : ''}
+    <div class="section-divider">Player Stats</div>
+    <div style="overflow-x:auto">
+      <table class="live-stats-table">
+        <thead><tr><th>Player</th><th>K</th><th>E</th><th>TA</th><th>Hit%</th><th>BS</th><th>BA</th><th>SA</th><th>SE</th><th>Digs</th><th>Ast</th><th>Pass</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  openModal('playerModal');
+}
+
+function resumeMatchSetup(matchId) {
+  const m = (state.matches||[]).find(x => x.id === matchId);
+  if (!m) return;
+  match = m;
+  nav(document.querySelector('[data-page=match]'));
+  if (match.status === 'live') {
+    document.getElementById('liveDot').style.display = 'inline-block';
+    renderLiveTracker();
+  } else {
+    renderMatchSetup();
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  AI MATCH ANALYSIS + AUTO PRACTICE PLAN
+// ═══════════════════════════════════════════════════════════════
+async function generateMatchAnalysis(matchId) {
+  if (!state.apiKey) { alert('Enter your Anthropic API key in the banner above.'); return; }
+  const m = (state.matches||[]).find(x => x.id === matchId);
+  if (!m) return;
+
+  showToast('🤖 Analysing match… this takes ~15 seconds', 0);
+
+  const allPlayers = [...(m.lineup||[]).filter(Boolean), ...(m.bench||[])];
+  const statLines = allPlayers.map(p => {
+    const s = m.playerStats?.[p.id];
+    if (!s) return null;
+    const hp = s.attempts > 0 ? ((s.kills-s.errors)/s.attempts).toFixed(3) : 'N/A';
+    const pass = s.passAttempts > 0 ? (s.passTotal/s.passAttempts).toFixed(2) : 'N/A';
+    return `${p.name}(${posLabel(p)}): K${s.kills} E${s.errors} TA${s.attempts} Hit${hp} B${s.blocks} A${s.aces} SE${s.serveErrors} Digs${s.digs} Ast${s.assists} Pass${pass}`;
+  }).filter(Boolean).join('\n');
+
+  const sets = m.sets.filter(s=>s.us>0||s.them>0);
+  const setStr = sets.map((s,i)=>`Set${i+1}: ${s.us}-${s.them}`).join(', ');
+  const drillOptions = allDrills().map(d=>`ID:${d.id}|${d.name}|${d.category}|${d.duration}min`).join('\n');
+
+  const prompt = `You are an expert volleyball coach analyst. Analyse this match and generate a 90-minute practice plan.
+
+Match: ${m.opponent||'Unknown'}, ${m.date||''}
+Result: ${m.score.us}-${m.score.them} sets (${setStr})
+Team: ${state.teamName||'Us'}
+
+Player Stats:
+${statLines}
+
+Available Drills:
+${drillOptions}
+
+Return ONLY valid JSON with this exact structure:
+{
+  "matchReport": "3-4 sentence match analysis covering overall performance, key trends, and standout moments",
+  "strengths": ["team strength 1","team strength 2","team strength 3"],
+  "weaknesses": ["team weakness 1","team weakness 2","team weakness 3"],
+  "playerHighlights": [{"name":"Player","note":"brief highlight or concern"}],
+  "practicePlan": {
+    "title": "Next Practice Plan — [Date]",
+    "totalMinutes": 90,
+    "focusAreas": ["area1","area2"],
+    "drills": [
+      {"id":"drill-id","name":"Drill Name","duration":15,"segment":"Warm-Up|Skill 1|Skill 2|Team|Competitive|Cool Down","rationale":"Why based on match data","triggeringStat":"Specific stat from this match"}
+    ]
+  }
+}`;
+
+  try {
+    const res = await callClaude(prompt);
+    const analysis = parseJSONResponse(res);
+    m.aiAnalysis = analysis;
+
+    // save practice plan to main plans list
+    if (analysis.practicePlan) {
+      const planObj = {
+        id: uid(), playerId: null, playerName: null,
+        teamPlan: true, aiGenerated: true, sourceMatchId: m.id,
+        title: analysis.practicePlan.title,
+        totalMinutes: analysis.practicePlan.totalMinutes,
+        focusAreas: analysis.practicePlan.focusAreas,
+        notes: `Generated from match vs ${m.opponent} (${m.date})`,
+        drills: (analysis.practicePlan.drills||[]).map((d,i) => {
+          const drill = allDrills().find(x=>x.id===d.id) || allDrills().find(x=>x.name===d.name);
+          return { name: drill?.name||d.name, duration: d.duration, segment: d.segment, rationale: d.rationale, triggeringStat: d.triggeringStat, order: i+1 };
+        }),
+      };
+      state.plans.unshift(planObj);
+      save();
+    }
+
+    await saveMatchLocal();
+    clearToast();
+    showToast('✓ AI analysis complete! View in Match History or Practice Plans.');
+    renderMatchHistory();
+  } catch(e) {
+    clearToast();
+    showToast('Analysis failed: ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PATCH: extend nav() to handle new pages
+// ═══════════════════════════════════════════════════════════════
+const _originalNav = nav;
+window.nav = function(el) {
+  _originalNav(el);
+  const page = el.dataset.page;
+  if (page === 'match') {
+    renderMatchPage();
+  }
+  if (page === 'match-history') {
+    renderMatchHistory();
+  }
+};
+
+// patch PAGE_TITLES object (it was a const inside nav closure, re-declare supplement)
+window.PAGE_TITLES = Object.assign(window.PAGE_TITLES || {}, {
+  'match': 'Live Match', 'match-history': 'Match History'
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  NEW MATCH BUTTON — reset state
+// ═══════════════════════════════════════════════════════════════
+function newMatch() {
+  match = null;
+  nav(document.querySelector('[data-page=match]'));
+}
+
+// load match history on boot
+loadMatchesFromDB().then(() => {
+  if (state.matches?.some(m => m.status === 'live')) {
+    document.getElementById('liveDot').style.display = 'inline-block';
+  }
+});
+</script>
+</body>
+</html>
