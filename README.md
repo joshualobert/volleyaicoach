@@ -1,87 +1,52 @@
-# VolleyAI
+# VolleyAI Coach
 
-> AI-powered volleyball film analysis that turns your footage into actionable training plans.
+> A single-file volleyball coaching platform for live match tracking, player analysis, and AI-powered practice planning.
 
-![Status](https://img.shields.io/badge/status-in%20development-yellow)
-![Language](https://img.shields.io/badge/language-Python-3776AB?logo=python&logoColor=white)
+![Status](https://img.shields.io/badge/status-active-brightgreen)
+![Type](https://img.shields.io/badge/type-single%20HTML%20file-orange)
 
 ---
 
 ## Overview
 
-VolleyAI is a Python script that analyses volleyball match or practice footage and generates detailed performance statistics. From those stats, it automatically builds a personalised practice plan targeting each player's specific areas for improvement.
+VolleyAI Coach is a self-contained web app — one HTML file, no install, no server. Open it in a browser and you have a full coaching platform: track live match stats, manage your roster, generate AI scouting reports, build practice plans, and review match history.
 
-No more guessing what to work on. Let your film tell the story.
+All data is stored locally in your browser (IndexedDB + localStorage). AI features use the Anthropic Claude API directly.
 
 ---
 
 ## Features
 
-- **Film Analysis** — Point the script at a video file and let the AI do the rest.
-- **Performance Statistics** — Get detailed stats including attack efficiency, serve accuracy, reception quality, dig success rate, and more.
-- **Tailored Practice Plans** — A personalised training programme is generated based on your performance data, targeting specific weaknesses.
-- **Progress Tracking** — Run the script across multiple sessions and compare stats over time.
-
----
-
-## How It Works
-
-```
-Input Video → AI Analysis → Stats Output → Practice Plan
-```
-
-1. **Provide** a match or practice video file as input.
-2. **VolleyAI analyses** the footage — detecting players, tracking movements, and identifying key actions (serves, attacks, blocks, digs, sets).
-3. **Stats are generated** across all key performance indicators.
-4. **A custom practice plan** is printed/exported based on where the data shows the most room for improvement.
-
----
-
-## Requirements
-
-- Python 3.10+
-- Dependencies listed in `requirements.txt`
-
----
-
-## Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/volleyai.git
-cd volleyai
-
-# Install dependencies
-pip install -r requirements.txt
-```
+- **Live Match Tracking** — Score points, record player stats in real time, manage substitutions, and track rotations from a court view
+- **Roster Management** — Add players with jersey numbers and positions (multi-position supported), view career stats per player
+- **AI Player Analysis** — Generate individual scouting reports and strength/weakness breakdowns via Claude
+- **Practice Plan Generator** — AI-personalised drill recommendations based on player stats and weaknesses
+- **Drill Library** — Store and search your own drills by category and difficulty
+- **Match History** — Review past match stats, scores, and AI-generated analysis
+- **Stat Sheet Scanner** — Upload a photo of a stat sheet and AI extracts the data automatically (Claude vision)
+- **Offline-first** — All data stored locally; works without internet (AI features require connection)
 
 ---
 
 ## Usage
 
-```bash
-python volleyai.py --input path/to/your/video.mp4
-```
+1. Download `VolleyAI Coach.html`
+2. Open it in any modern browser
+3. Enter your Anthropic API key in the banner at the top to enable AI features
+4. Add your roster and start coaching
 
-### Options
-
-| Flag | Description |
-|---|---|
-| `--input` | Path to the video file to analyse |
-| `--output` | Directory to save stats and practice plan (default: `./output`) |
-| `--player` | Player name or ID to filter analysis for a specific individual |
-| `--format` | Output format: `text`, `json`, or `csv` (default: `text`) |
-
-> Options will be updated as the project develops.
+No installation, no dependencies, no server required.
 
 ---
 
-## Output
+## AI Features
 
-After running, VolleyAI produces:
+AI features use [Anthropic Claude](https://anthropic.com) via direct browser API call:
 
-- **Stats report** — A breakdown of performance metrics from the analysed footage.
-- **Practice plan** — A structured training plan tailored to the results.
+- **Text analysis** — Claude Haiku (player reports, practice plans, team reports)
+- **Vision / OCR** — Claude Sonnet (stat sheet photo scanning)
+
+You'll need an Anthropic API key. Your key is stored only in your browser's localStorage and never sent anywhere except directly to Anthropic.
 
 ---
 
@@ -89,23 +54,27 @@ After running, VolleyAI produces:
 
 | Component | Technology |
 |---|---|
-| Language | Python 3.10+ |
-| Computer Vision | TBD |
-| ML Framework | TBD |
+| App | Single HTML file (HTML + CSS + JS) |
+| Charts | Chart.js (CDN) |
+| Storage | IndexedDB + localStorage |
+| AI | Anthropic Claude API |
 
 ---
 
 ## Project Status
 
-VolleyAI is currently **in active development**.
+VolleyAI Coach is actively developed.
 
-- [x] Project setup
-- [ ] Video input pipeline
-- [ ] AI analysis model integration
-- [ ] Stats engine
-- [ ] Practice plan generation
-- [ ] Output formatting (text / JSON / CSV)
+- [x] Live match stat tracking
+- [x] Roster & multi-position management
+- [x] Court view with rotation tracking
+- [x] AI player scouting reports
+- [x] AI practice plan generation
+- [x] Drill library
+- [x] Match history & stat review
+- [x] Stat sheet photo scanning (OCR)
+- [x] Offline-first storage
 
 ---
 
-*Built for players who want to train smarter, not just harder.*
+*Built for coaches who want to spend less time on paperwork and more time coaching.*
