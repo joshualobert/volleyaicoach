@@ -660,6 +660,18 @@
   </div>
 </div>
 
+<!-- ══════ END MATCH MODAL ══════ -->
+<div class="modal-bg" id="endMatchModal">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-head"><h2>End Match?</h2><button class="close-btn" onclick="closeModal('endMatchModal')">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:14px;color:var(--body);margin-bottom:20px">This will finalize all stats and move the match to History.</p>
+      <button class="btn btn-danger" style="width:100%;padding:12px;font-size:15px;margin-bottom:8px" onclick="closeModal('endMatchModal');confirmEndMatch()">End Match</button>
+      <button class="btn btn-outline" style="width:100%" onclick="closeModal('endMatchModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════ END SET MODAL ══════ -->
 <div class="modal-bg" id="endSetModal">
   <div class="modal" style="max-width:400px">
@@ -3255,7 +3267,9 @@ function confirmEndSet() {
 }
 
 function endMatch() {
-  if (!confirm('End the match? This will finalize all stats.')) return;
+  openModal('endMatchModal');
+}
+function confirmEndMatch() {
   const set = match.sets[match.currentSet];
   if (set.us > 0 || set.them > 0) {
     if (set.us > set.them) match.score.us++; else match.score.them++;
