@@ -1251,8 +1251,7 @@ function diffBadge(d) {
 let dashCharts = {};
 function renderDash() {
   const players = state.players;
-  const hasEndedMatches = (state.matches || []).some(m => m.status === 'ended');
-  const withStats = hasEndedMatches ? players.filter(p => p.stats && p.stats.kills !== undefined) : [];
+  const withStats = players.filter(p => p.stats && p.stats.kills !== undefined && Object.values(p.stats).some(v => v > 0));
   const avgHit = withStats.length ? withStats.reduce((s,p) => s + (p.stats.hittingPct||0), 0) / withStats.length : 0;
   const avgRcpt = withStats.length ? withStats.reduce((s,p) => s + (p.stats.receptionRating||0), 0) / withStats.length : 0;
   const teamName = state.teamName || document.getElementById('teamNameInput')?.value;
@@ -1321,12 +1320,12 @@ function renderDash() {
         datasets: [{
           label:'Team', fill:true,
           data: [
-            20 + withStats.reduce((s,p)=>s+(p.stats.aces||0),0)/Math.max(1,withStats.length)*15,
-            20 + (avgHit + 0.5)*60,
-            20 + withStats.reduce((s,p)=>s+(p.stats.blocks||0),0)/Math.max(1,withStats.length)*15,
-            20 + withStats.reduce((s,p)=>s+(p.stats.digs||0),0)/Math.max(1,withStats.length)*8,
-            20 + avgRcpt/3*60,
-            20 + withStats.reduce((s,p)=>s+(p.stats.assists||0),0)/Math.max(1,withStats.length)*6,
+            Math.min(100, withStats.reduce((s,p)=>s+(p.stats.aces||0),0)/Math.max(1,withStats.length)*15),
+            Math.min(100, Math.max(0, (avgHit + 0.5)*60)),
+            Math.min(100, withStats.reduce((s,p)=>s+(p.stats.blocks||0),0)/Math.max(1,withStats.length)*15),
+            Math.min(100, withStats.reduce((s,p)=>s+(p.stats.digs||0),0)/Math.max(1,withStats.length)*8),
+            Math.min(100, avgRcpt/3*60),
+            Math.min(100, withStats.reduce((s,p)=>s+(p.stats.assists||0),0)/Math.max(1,withStats.length)*6),
           ],
           backgroundColor:'rgba(59,130,246,.2)', borderColor:'#3b82f6', pointBackgroundColor:'#3b82f6',
         }]
@@ -2413,7 +2412,7 @@ function renderMatchSetup() {
 
   if (!match) {
     match = {
-      id: uid(), opponent:'', date: new Date().toISOString().slice(0,10),
+      id: uid(), teamId: getActiveTeamId(), opponent:'', date: new Date().toISOString().slice(0,10),
       tournament:'', location:'',
       sets: [{ us:0, them:0, rallies:[], rotationLog:[] }],
       currentSet: 0, score: { us:0, them:0 },
@@ -2637,7 +2636,10 @@ async function saveMatchLocal() {
 
 async function loadMatchesFromDB() {
   const all = await dbGetAll('matches');
-  state.matches = all.sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt));
+  const tid = getActiveTeamId();
+  // filter to current team; matches without teamId (legacy) are kept for the first team
+  const filtered = all.filter(m => !m.teamId || m.teamId === tid);
+  state.matches = filtered.sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt));
   localStorage.setItem(teamKey('matches'), JSON.stringify(state.matches));
 }
 
