@@ -1255,7 +1255,7 @@ function renderDash() {
   const withStats = hasEndedMatches ? players.filter(p => p.stats && p.stats.kills !== undefined) : [];
   const avgHit = withStats.length ? withStats.reduce((s,p) => s + (p.stats.hittingPct||0), 0) / withStats.length : 0;
   const avgRcpt = withStats.length ? withStats.reduce((s,p) => s + (p.stats.receptionRating||0), 0) / withStats.length : 0;
-  const teamName = document.getElementById('teamNameInput')?.value || state.teamName;
+  const teamName = state.teamName || document.getElementById('teamNameInput')?.value;
 
   let html = `
   <div class="page-title"><h1>${teamName}</h1><p>${players.length} players · ${state.plans.length} practice plans</p></div>
