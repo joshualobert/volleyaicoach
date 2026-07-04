@@ -320,6 +320,11 @@
   .quick-stat-btn.k  { background:var(--green-100); color:var(--green); border-color:#a8e6c0; }
   .quick-stat-btn.d  { background:#e8f2ff; color:#0761d1; border-color:#b3cfff; }
   .quick-stat-btn.a  { background:var(--yellow-100); color:var(--yellow-700); border-color:#ffd5a0; }
+  .quick-stat-btn.r3 { background:#f0fdf4; color:#15803d; border-color:#86efac; }
+  .quick-stat-btn.r2 { background:#eff6ff; color:#1d4ed8; border-color:#93c5fd; }
+  .quick-stat-btn.r1 { background:#fefce8; color:#a16207; border-color:#fde047; }
+  .quick-stat-btn.ast{ background:var(--yellow-100); color:var(--yellow-700); border-color:#ffd5a0; }
+  .quick-stat-btn.att{ background:#f5f3ff; color:#6d28d9; border-color:#c4b5fd; }
 
   /* Rally strip player chips */
   .rally-chip { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
@@ -2953,11 +2958,24 @@ function renderCourt() {
     const abbrev = player ? posDisplay(player) : '';
     const displayName = player ? shortName(player.name) : '';
     const pid = player?.id || '';
+    const isSetterPos = player && hasPos(player, 'Setter');
+    const isDSPos = player && (hasPos(player, 'Libero') || hasPos(player, 'Defensive Specialist'));
     const quickBtns = player ? `
       <div class="quick-stats" onclick="event.stopPropagation()">
-        <button class="quick-stat-btn k" onclick="quickStat('${pid}','kill')" title="Kill">K</button>
-        <button class="quick-stat-btn d" onclick="quickStat('${pid}','dig')"  title="Dig">D</button>
-        <button class="quick-stat-btn a" onclick="quickStat('${pid}','ace')"  title="Ace">Ace</button>
+        ${isDSPos ? `
+          <button class="quick-stat-btn r3" onclick="quickStat('${pid}','pass3')" title="Perfect Pass">3</button>
+          <button class="quick-stat-btn r2" onclick="quickStat('${pid}','pass2')" title="Good Pass">2</button>
+          <button class="quick-stat-btn r1" onclick="quickStat('${pid}','pass1')" title="Poor Pass">1</button>
+          <button class="quick-stat-btn d"  onclick="quickStat('${pid}','dig')"   title="Dig">D</button>
+        ` : isSetterPos ? `
+          <button class="quick-stat-btn ast" onclick="quickStat('${pid}','assist')"    title="Assist">Ast</button>
+          <button class="quick-stat-btn att" onclick="quickStat('${pid}','assistOpp')" title="Set Attempt">Att</button>
+          <button class="quick-stat-btn d"   onclick="quickStat('${pid}','dig')"       title="Dig">D</button>
+        ` : `
+          <button class="quick-stat-btn k"   onclick="quickStat('${pid}','kill')"        title="Kill">K</button>
+          <button class="quick-stat-btn att"  onclick="quickStat('${pid}','attempt')"     title="Attempt">Att</button>
+          <button class="quick-stat-btn d"    onclick="quickStat('${pid}','dig')"         title="Dig">D</button>
+        `}
       </div>` : '';
     return `<div class="court-pos${isLibero?' libero-spot':''}${isServer?' serving':''}"
       onclick="openStatEntry('${pid}', ${cellIdx})" title="${POS_NAMES[posNum]}">
