@@ -3,7 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VolleyAI Coach</title>
+<title>VolleyAI Coach — Live Volleyball Stat Tracking & AI Coaching</title>
+<meta name="description" content="Track live match stats, monitor player performance, and generate AI-powered practice plans. Free volleyball coaching app for high school and club teams.">
+<meta name="keywords" content="volleyball coaching app, volleyball stat tracking, live volleyball stats, volleyball practice plans, AI volleyball coach">
+<meta property="og:title" content="VolleyAI Coach">
+<meta property="og:description" content="Live stat tracking, player performance insights, and AI-generated practice plans for volleyball coaches.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="VolleyAI Coach">
+<meta name="twitter:description" content="Live stat tracking and AI coaching tools for volleyball teams.">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script
   async
@@ -304,6 +312,21 @@
   .bench-player:hover { background: var(--canvas); }
   .bench-player .bnum { font-size:11px; color:var(--mute); font-weight:400; font-family:'Geist Mono',monospace; }
 
+  /* Quick-stat buttons on court tiles */
+  .quick-stats { display:flex; gap:4px; justify-content:center; margin-top:5px; }
+  .quick-stat-btn { font-size:9px; font-weight:700; font-family:'Geist Mono',monospace; padding:2px 6px; border-radius:4px; border:1px solid; cursor:pointer; -webkit-tap-highlight-color:transparent; letter-spacing:.04em; text-transform:uppercase; }
+  .quick-stat-btn:active { opacity:.6; }
+  .quick-stat-btn.k  { background:var(--green-100); color:var(--green); border-color:#a8e6c0; }
+  .quick-stat-btn.d  { background:#e8f2ff; color:#0761d1; border-color:#b3cfff; }
+  .quick-stat-btn.a  { background:var(--yellow-100); color:var(--yellow-700); border-color:#ffd5a0; }
+
+  /* Rally strip player chips */
+  .rally-chip { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .rally-chip .chip-name { font-size:11px; font-weight:600; color:var(--ink); white-space:nowrap; }
+  .rally-chip .chip-num  { font-size:9px; color:var(--mute); font-family:'Geist Mono',monospace; }
+  .rally-chip .chip-avatar { width:38px; height:38px; border-radius:50%; background:var(--canvas); border:2px solid var(--hairline); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:var(--ink); transition:border-color .1s, background .1s; }
+  .rally-chip:active .chip-avatar { background:var(--green-100); border-color:var(--green); }
+
   /* Stat action buttons */
   .stat-action-grid { display:grid; gap:6px; }
   .stat-action-grid.cols-2 { grid-template-columns:1fr 1fr; }
@@ -353,12 +376,179 @@
 </head>
 <body>
 
-<!-- Auth gate: shown until Clerk confirms a signed-in user -->
-<div id="authGate" style="position:fixed;inset:0;z-index:1000;background:var(--canvas);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px">
-  <div style="width:48px;height:48px;background:var(--ink);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff">V</div>
-  <h2 style="font-size:18px;font-weight:600;color:var(--ink);margin:0">VolleyAI Coach</h2>
-  <p style="font-size:13px;color:var(--mute);margin:0">Sign in to access your team</p>
-  <div id="clerkAuthBox"></div>
+<!-- Landing page / auth gate -->
+<div id="authGate" style="position:fixed;inset:0;z-index:1000;background:#fff;overflow-y:auto;display:flex;flex-direction:column;font-family:'Geist',system-ui,sans-serif">
+<style>
+  #authGate * { box-sizing:border-box; }
+  #authGate a { color:inherit; text-decoration:none; }
+  .lp-nav { position:sticky;top:0;z-index:5;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;border-bottom:1px solid #f0f0f0;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px); }
+  .lp-logo { display:flex;align-items:center;gap:9px;text-decoration:none; }
+  .lp-logo-mark { width:26px;height:26px;background:#171717;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;letter-spacing:-.02em;flex-shrink:0; }
+  .lp-logo-name { font-size:14px;font-weight:600;color:#171717;letter-spacing:-.02em; }
+  .lp-signin-btn { height:32px;padding:0 14px;background:#171717;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:opacity .15s; }
+  .lp-signin-btn:hover { opacity:.82; }
+  .lp-hero { display:grid;grid-template-columns:1fr 420px;gap:56px;align-items:center;max-width:1040px;margin:0 auto;padding:72px 32px 56px;width:100%; }
+  .lp-h1 { font-size:40px;font-weight:700;color:#171717;line-height:1.08;letter-spacing:-.05em;margin:0 0 16px; }
+  .lp-sub { font-size:15px;color:#6b7280;line-height:1.65;margin:0 0 28px;max-width:360px; }
+  .lp-cta { display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 18px;background:#171717;color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:opacity .15s; }
+  .lp-cta:hover { opacity:.82; }
+  .lp-cta-note { font-size:11px;color:#9ca3af;margin:10px 0 0; }
+  .lp-panel { background:#fafafa;border:1px solid #ebebeb;border-radius:14px;overflow:hidden; }
+  .lp-panel-score { background:#171717;padding:18px 20px 16px; }
+  .lp-score-meta { display:flex;justify-content:space-between;align-items:center;margin-bottom:14px; }
+  .lp-score-meta span { font-size:10px;color:rgba(255,255,255,.35);font-family:'Geist Mono',monospace;letter-spacing:.08em;text-transform:uppercase; }
+  .lp-scores { display:flex;align-items:center;justify-content:center;gap:28px; }
+  .lp-score-team { text-align:center; }
+  .lp-score-num { font-size:52px;font-weight:700;color:#fff;line-height:1;letter-spacing:-.06em;font-variant-numeric:tabular-nums; }
+  .lp-score-label { font-size:9px;color:rgba(255,255,255,.28);margin-top:7px;letter-spacing:.12em;text-transform:uppercase;font-family:'Geist Mono',monospace; }
+  .lp-score-sep { font-size:22px;color:rgba(255,255,255,.12);font-weight:200;margin-bottom:16px; }
+  .lp-table { width:100%;border-collapse:collapse; }
+  .lp-table th { padding:8px 16px;text-align:left;font-size:10px;font-weight:600;color:#9ca3af;letter-spacing:.07em;text-transform:uppercase;font-family:'Geist Mono',monospace;border-bottom:1px solid #f0f0f0; }
+  .lp-table th:not(:first-child) { text-align:right; }
+  .lp-table td { padding:9px 16px;font-size:12px;color:#374151;border-bottom:1px solid #f5f5f5; }
+  .lp-table td:not(:first-child) { text-align:right;font-family:'Geist Mono',monospace;font-size:11px;color:#6b7280; }
+  .lp-table td strong { font-weight:600;color:#171717;font-size:12px; }
+  .lp-table tr:last-child td { border-bottom:none; }
+  .lp-table .lp-pill { display:inline-block;background:#f0faf5;color:#1a7a3c;font-size:9px;font-weight:600;font-family:'Geist Mono',monospace;padding:2px 6px;border-radius:4px; }
+  .lp-features { border-top:1px solid #f0f0f0;max-width:1040px;margin:0 auto;width:100%;padding:0 32px 72px; }
+  .lp-features-grid { display:grid;grid-template-columns:repeat(3,1fr);border:1px solid #f0f0f0;border-radius:12px;overflow:hidden; }
+  .lp-feat { padding:24px;border-right:1px solid #f0f0f0; }
+  .lp-feat:last-child { border-right:none; }
+  .lp-feat-icon { width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#f5f5f5;margin-bottom:14px;color:#374151; }
+  .lp-feat-icon svg { width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75; }
+  .lp-feat h3 { font-size:13px;font-weight:600;color:#171717;margin:0 0 6px;letter-spacing:-.02em; }
+  .lp-feat p { font-size:12px;color:#6b7280;line-height:1.6;margin:0; }
+  .lp-overlay { display:none;position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.4);align-items:center;justify-content:center;padding:16px; }
+  .lp-overlay-card { background:#fff;border-radius:14px;padding:28px;width:100%;max-width:360px;position:relative;border:1px solid #ebebeb; }
+  .lp-overlay-close { position:absolute;top:14px;right:14px;background:none;border:none;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#9ca3af;border-radius:6px; }
+  .lp-overlay-close:hover { background:#f5f5f5;color:#374151; }
+  .lp-overlay-head { display:flex;align-items:center;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #f0f0f0; }
+  @media(max-width:720px){
+    .lp-hero { grid-template-columns:1fr;gap:32px;padding:48px 20px 32px; }
+    .lp-panel { display:none; }
+    .lp-h1 { font-size:30px; }
+    .lp-nav { padding:0 20px; }
+    .lp-features { padding:0 20px 56px; }
+    .lp-features-grid { grid-template-columns:1fr; }
+    .lp-feat { border-right:none;border-bottom:1px solid #f0f0f0; }
+    .lp-feat:last-child { border-bottom:none; }
+  }
+</style>
+
+  <!-- Nav -->
+  <nav class="lp-nav">
+    <div class="lp-logo">
+      <div class="lp-logo-mark">V</div>
+      <span class="lp-logo-name">VolleyAI</span>
+    </div>
+    <button class="lp-signin-btn" onclick="showSignIn()">Sign in</button>
+  </nav>
+
+  <!-- Hero -->
+  <div class="lp-hero">
+    <div>
+      <p style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:.1em;text-transform:uppercase;margin:0 0 20px;font-family:'Geist Mono',monospace">Coaching software</p>
+      <h1 class="lp-h1">Sideline stats.<br>Smarter practice.</h1>
+      <p class="lp-sub">Real-time match tracking, player performance data, and practice planning for volleyball coaches who take their program seriously.</p>
+      <button class="lp-cta" onclick="showSignIn()">
+        Get started free
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </button>
+      <p class="lp-cta-note">Free · No setup · Works on any device</p>
+    </div>
+
+    <!-- Product UI preview -->
+    <div class="lp-panel">
+      <div class="lp-panel-score">
+        <div class="lp-score-meta">
+          <span>Set 2 &nbsp;·&nbsp; Rotation 4</span>
+          <span>Serving &nbsp;S:8 R:5</span>
+        </div>
+        <div class="lp-scores">
+          <div class="lp-score-team">
+            <div class="lp-score-num">18</div>
+            <div class="lp-score-label">Riverside</div>
+          </div>
+          <div class="lp-score-sep">:</div>
+          <div class="lp-score-team">
+            <div class="lp-score-num">14</div>
+            <div class="lp-score-label">Lincoln</div>
+          </div>
+        </div>
+      </div>
+      <table class="lp-table">
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>K</th><th>E</th><th>TA</th><th>Dig</th><th>Ast</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>M. Santos</strong> <span class="lp-pill">OH</span></td>
+            <td>7</td><td>2</td><td>14</td><td>3</td><td>—</td>
+          </tr>
+          <tr>
+            <td><strong>T. Park</strong> <span class="lp-pill">S</span></td>
+            <td>—</td><td>—</td><td>—</td><td>2</td><td>11</td>
+          </tr>
+          <tr>
+            <td><strong>A. Reyes</strong> <span class="lp-pill">MB</span></td>
+            <td>4</td><td>1</td><td>7</td><td>1</td><td>—</td>
+          </tr>
+          <tr>
+            <td><strong>K. Liu</strong> <span class="lp-pill">DS</span></td>
+            <td>—</td><td>—</td><td>—</td><td>9</td><td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <div class="lp-features">
+    <div class="lp-features-grid">
+      <div class="lp-feat">
+        <div class="lp-feat-icon">
+          <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        </div>
+        <h3>Live match tracking</h3>
+        <p>Score rallies, log stats, and manage rotations from the bench. One tap per action.</p>
+      </div>
+      <div class="lp-feat">
+        <div class="lp-feat-icon">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+        <h3>Player performance</h3>
+        <p>Hitting percentage, reception rating, and per-match breakdowns across your full roster.</p>
+      </div>
+      <div class="lp-feat">
+        <div class="lp-feat-icon">
+          <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        </div>
+        <h3>Practice planning</h3>
+        <p>Drill recommendations generated from your match data — targeted to what actually broke down.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sign-in overlay -->
+  <div id="clerkAuthOverlay" class="lp-overlay" onclick="if(event.target===this)hideSignIn()">
+    <div class="lp-overlay-card">
+      <button class="lp-overlay-close" onclick="hideSignIn()" aria-label="Close">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>
+      <div class="lp-overlay-head">
+        <div class="lp-logo-mark">V</div>
+        <div>
+          <div style="font-size:14px;font-weight:600;color:#171717;letter-spacing:-.02em">Sign in to VolleyAI</div>
+          <div style="font-size:12px;color:#9ca3af;margin-top:2px">Free coaching account</div>
+        </div>
+      </div>
+      <div id="clerkAuthBox"></div>
+    </div>
+  </div>
+
 </div>
 
 <div id="appRoot" style="display:none">
@@ -644,6 +834,15 @@
 </div><!-- /app -->
 
 <!-- ══════ STAT ACTION SHEET ══════ -->
+<!-- Rally Tag Strip -->
+<div id="rallyStrip" style="position:fixed;bottom:0;left:0;right:0;z-index:190;display:none;padding:12px 16px 28px;background:var(--elevated);border-top:1px solid var(--hairline);box-shadow:0 -4px 20px rgba(0,0,0,.08)">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <span id="rallyStripLabel" style="font-size:12px;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.06em;font-family:'Geist Mono',monospace"></span>
+    <button onclick="closeRallyStrip()" style="font-size:12px;color:var(--mute);background:none;border:none;cursor:pointer;padding:2px 6px">Skip</button>
+  </div>
+  <div id="rallyStripPlayers" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+</div>
+
 <div id="actionSheet" style="position:fixed;inset:0;z-index:200;display:none">
   <div id="actionSheetBg" style="position:absolute;inset:0;background:rgba(0,0,0,.5)" onclick="closeActionSheet()"></div>
   <div id="actionSheetPanel" style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:20px 20px 0 0;padding:20px;max-height:80vh;overflow-y:auto;transform:translateY(100%);transition:.25s ease">
@@ -2752,12 +2951,20 @@ function renderCourt() {
     const isLibero = player ? hasPos(player, 'Libero') : false;
     const abbrev = player ? posDisplay(player) : '';
     const displayName = player ? shortName(player.name) : '';
+    const pid = player?.id || '';
+    const quickBtns = player ? `
+      <div class="quick-stats" onclick="event.stopPropagation()">
+        <button class="quick-stat-btn k" onclick="quickStat('${pid}','kill')" title="Kill">K</button>
+        <button class="quick-stat-btn d" onclick="quickStat('${pid}','dig')"  title="Dig">D</button>
+        <button class="quick-stat-btn a" onclick="quickStat('${pid}','ace')"  title="Ace">Ace</button>
+      </div>` : '';
     return `<div class="court-pos${isLibero?' libero-spot':''}${isServer?' serving':''}"
-      onclick="openStatEntry('${player?.id||''}', ${cellIdx})" title="${POS_NAMES[posNum]}">
+      onclick="openStatEntry('${pid}', ${cellIdx})" title="${POS_NAMES[posNum]}">
       <div class="jersey">${player ? '#'+(player.number||'?') : ''}</div>
       <div class="pname">${player ? displayName : '<span style="opacity:.4;font-size:10px">Empty</span>'}</div>
       ${player ? `<div class="pos-abbr">${abbrev}</div>` : ''}
       <div class="pos-label">${POS_LABELS[posNum]}</div>
+      ${quickBtns}
     </div>`;
   }
 
@@ -2847,6 +3054,7 @@ function scorePoint(side, noRender) {
     saveMatchLocal();
     renderLiveTracker();
     if (setOver) openEndSetModal();
+    else openRallyStrip(side);
   }
   return setOver;
 }
@@ -3156,6 +3364,66 @@ function closeActionSheet() {
   const panel = document.getElementById('actionSheetPanel');
   panel.style.transform = 'translateY(100%)';
   setTimeout(() => { document.getElementById('actionSheet').style.display = 'none'; }, 260);
+}
+
+// One-tap stat from court tile quick buttons
+function quickStat(playerId, type) {
+  if (!playerId || !match) return;
+  actionTarget = { playerId, posIdx: -1 };
+  recordStat(type);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RALLY TAG STRIP
+// ═══════════════════════════════════════════════════════════════
+let rallyStripTimer = null;
+
+function openRallyStrip(side) {
+  const onCourt = match.lineup.filter(Boolean);
+  if (!onCourt.length) return;
+
+  const isOurPoint = side === 'us';
+  const label = isOurPoint ? 'Who got the kill / ace?' : 'Tag a dig?';
+  const statType = isOurPoint ? 'kill' : 'dig';
+
+  document.getElementById('rallyStripLabel').textContent = label;
+  document.getElementById('rallyStripPlayers').innerHTML = onCourt.map(p => `
+    <div class="rally-chip" onclick="rallyTagStat('${p.id}','${statType}')">
+      <div class="chip-avatar">${p.name.charAt(0)}</div>
+      <div class="chip-num">#${p.number||'?'}</div>
+      <div class="chip-name">${shortName(p.name)}</div>
+    </div>`).join('');
+
+  const strip = document.getElementById('rallyStrip');
+  strip.style.display = 'block';
+  // auto-dismiss after 8 seconds
+  clearTimeout(rallyStripTimer);
+  rallyStripTimer = setTimeout(closeRallyStrip, 8000);
+}
+
+function closeRallyStrip() {
+  clearTimeout(rallyStripTimer);
+  document.getElementById('rallyStrip').style.display = 'none';
+}
+
+function rallyTagStat(playerId, type) {
+  closeRallyStrip();
+  actionTarget = { playerId, posIdx: -1 };
+  // record stat without auto-scoring (point already counted)
+  if (!match.playerStats[playerId]) match.playerStats[playerId] = blankPlayerStats();
+  const s = match.playerStats[playerId];
+  const statsBefore = { ...s };
+  if (type === 'kill')      { s.kills++; s.attempts++; }
+  else if (type === 'dig')  { s.digs++; }
+  else if (type === 'ace')  { s.aces++; s.serviceAttempts++; }
+  if (s.attempts > 0) s.hittingPct = (s.kills - s.errors) / s.attempts;
+  if (!match.undoStack) match.undoStack = [];
+  match.undoStack.push({ kind:'stat', playerId, statsBefore, type, setIdx: match.currentSet, timestamp: Date.now() });
+  saveMatchLocal();
+  renderLiveStatsTable();
+  const player = [...match.lineup.filter(Boolean), ...match.bench].find(p => p.id === playerId);
+  const label = type === 'kill' ? 'Kill' : type === 'dig' ? 'Dig' : 'Ace';
+  showToast(`${player ? shortName(player.name) : ''} — ${label}`);
 }
 
 function recordStat(type) {
@@ -3591,19 +3859,32 @@ loadMatchesFromDB().then(() => {
   // ═══════════════════════════════════════════════════════════════
   //  CLERK AUTH GATE
   // ═══════════════════════════════════════════════════════════════
-  window.addEventListener('load', async function () {
-    await Clerk.load();
+  function showSignIn() {
+    const overlay = document.getElementById('clerkAuthOverlay');
+    overlay.style.display = 'flex';
+  }
+  function hideSignIn() {
+    document.getElementById('clerkAuthOverlay').style.display = 'none';
+  }
 
+  window.addEventListener('load', async function () {
     function showApp() {
       document.getElementById('authGate').style.display = 'none';
       document.getElementById('appRoot').style.display = '';
       const mountEl = document.getElementById('userButton');
-      if (mountEl && !mountEl.dataset.mounted) {
+      if (mountEl && !mountEl.dataset.mounted && typeof Clerk !== 'undefined' && Clerk.user) {
         Clerk.mountUserButton(mountEl);
         mountEl.dataset.mounted = '1';
       }
     }
 
+    // Skip auth on localhost for local preview
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      showApp();
+      return;
+    }
+
+    await Clerk.load();
     if (Clerk.user) {
       showApp();
     } else {
