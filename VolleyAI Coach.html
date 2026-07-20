@@ -2650,7 +2650,7 @@ function renderMatchSetup() {
       serveDesignation: 'bothMiddles',
       servingMiddleId: null,   // when liberoServes: which MB is the serving one
       bench: [...players],
-      subHistory: [], rotation: 0,
+      subHistory: [], rotation: 0, startingRotation: 1,
       isServing: true,         // true = our team is currently serving
       servePoints: 0,          // points scored while serving (this set)
       receivePoints: 0,        // points scored while receiving / side-outs
@@ -2690,10 +2690,10 @@ function renderMatchSetup() {
       <!-- ── 2. STARTING ROTATION ── -->
       <div class="section-divider" style="margin-top:12px">Starting Rotation</div>
       <div style="margin-bottom:12px">
-        <select class="form-control" style="width:auto" onchange="match.rotation=parseInt(this.value,10)-1">
-          ${[1,2,3,4,5,6].map(n => `<option value="${n}" ${(match.rotation||0)+1===n?'selected':''}>Rotation ${n}</option>`).join('')}
+        <select class="form-control" style="width:auto" onchange="match.startingRotation=parseInt(this.value,10)">
+          ${[1,2,3,4,5,6].map(n => `<option value="${n}" ${(match.startingRotation||1)===n?'selected':''}>Rotation ${n}</option>`).join('')}
         </select>
-        <small style="color:var(--gray-400);font-size:11px;display:block;margin-top:4px">What rotation is the team starting the set in?</small>
+        <small style="color:var(--gray-400);font-size:11px;display:block;margin-top:4px">Enter players above in their <strong>current court positions</strong> for this rotation — do not shift them. This is just the rotation label.</small>
       </div>
 
       <!-- ── 3. LIBERO ── -->
@@ -2920,7 +2920,7 @@ function renderLiveTracker() {
   <!-- Controls bar -->
   <div class="live-controls">
     <select class="form-control" style="width:auto;font-size:12px;padding:5px 8px" onchange="setRotation(this.value)">
-      ${[1,2,3,4,5,6].map(n => `<option value="${n}" ${(match.rotation%6)+1===n?'selected':''}>Rot ${n}</option>`).join('')}
+      ${[1,2,3,4,5,6].map(n => `<option value="${n}" ${((((match.startingRotation||1)-1+match.rotation)%6)+1)===n?'selected':''}>Rot ${n}</option>`).join('')}
     </select>
     <button class="btn btn-outline btn-sm" onclick="rotateTeam()">↻ Rotate</button>
     <button class="btn btn-primary btn-sm" onclick="openSubModal()">⇄ Sub · ${match.subCount||0}/15</button>
@@ -3181,7 +3181,7 @@ const BACK_ROW_POS  = new Set([1,5,6]);
 
 function getRotationLabel() {
   if (!match) return '';
-  return `Rotation ${(match.rotation % 6) + 1}`;
+  return `Rotation ${(((match.startingRotation||1) - 1 + match.rotation) % 6) + 1}`;
 }
 
 function getPlayerCourtPos(playerId) {
@@ -3245,7 +3245,7 @@ function rotateTeam() {
 function setRotation(value) {
   const n = parseInt(value, 10);
   if (!n || n < 1 || n > 6) return;
-  match.rotation = (n - 1) % 6;
+  match.rotation = (n - (match.startingRotation||1) + 6) % 6;
   match.sets[match.currentSet].rotationLog.push({ rotation: match.rotation, time: Date.now() });
 
   applyRotationSwaps();
@@ -3253,7 +3253,7 @@ function setRotation(value) {
   saveMatchLocal();
   renderLiveTracker();
   const server = match.lineup[match.rotation % 6];
-  showToast('Rotation ' + n + ' — ' + shortName(server?.name||'?') + ' serving');
+  showToast(getRotationLabel() + ' — ' + shortName(server?.name||'?') + ' serving');
 }
 
 
