@@ -326,6 +326,45 @@
   .court-net { background:var(--hairline); border-top:2px solid var(--gray-400); border-bottom:2px solid var(--gray-400); text-align:center; font-size:8px; font-weight:500; color:var(--mute); letter-spacing:.2em; padding:4px 0; margin:0 -8px; font-family:'Geist Mono',monospace; }
 
   .bench-strip { display:flex; gap:6px; flex-wrap:wrap; }
+
+  /* ── Desktop live stat sidebars ─────────────────────────── */
+  .live-desktop-wrap { display:flex; gap:10px; max-width:1440px; margin:0 auto; padding:0 8px; align-items:flex-start; }
+  .live-sidebar { display:none; flex-direction:column; gap:8px; width:230px; flex-shrink:0; position:sticky; top:0; }
+  .live-center { flex:1; min-width:0; }
+  @media(min-width:900px) {
+    .live-sidebar { display:flex; }
+    .live-center { max-width:560px; }
+  }
+  .lpc { background:var(--elevated); border:1px solid var(--hairline); border-radius:12px; padding:10px 12px; }
+  .lpc.lpc-bench { opacity:.6; }
+  .lpc.lpc-libero { border-color:rgba(249,115,22,.35); background:rgba(249,115,22,.03); }
+  .lpc-head { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+  .lpc-num { font-size:11px; font-weight:600; color:var(--mute); font-family:'Geist Mono',monospace; flex-shrink:0; }
+  .lpc-name { font-size:13px; font-weight:700; color:var(--ink); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lpc-pos-badge { font-size:9px; font-weight:700; background:var(--canvas); color:var(--mute); padding:2px 5px; border-radius:4px; font-family:'Geist Mono',monospace; flex-shrink:0; }
+  .lpc-counts { display:flex; gap:10px; margin-bottom:8px; flex-wrap:wrap; }
+  .lpc-count { display:flex; flex-direction:column; align-items:center; min-width:30px; }
+  .lpc-count-val { font-size:18px; font-weight:800; color:var(--ink); line-height:1; font-variant-numeric:tabular-nums; }
+  .lpc-count-lbl { font-size:8px; color:var(--mute); text-transform:uppercase; letter-spacing:.04em; font-family:'Geist Mono',monospace; margin-top:1px; }
+  .lpc-btns { display:flex; flex-wrap:wrap; gap:4px; }
+  .lpc-btn { font-size:10px; font-weight:700; padding:5px 7px; border-radius:6px; border:1px solid; cursor:pointer; font-family:'Geist Mono',monospace; letter-spacing:.03em; -webkit-tap-highlight-color:transparent; flex:1; min-width:32px; text-align:center; white-space:nowrap; }
+  .lpc-btn:active { opacity:.6; transform:scale(.95); }
+  .lpc-btn.lk   { background:var(--green-100); color:var(--green); border-color:#a8e6c0; }
+  .lpc-btn.le   { background:var(--red-100); color:var(--red); border-color:#ffb3b3; }
+  .lpc-btn.latt { background:#f5f3ff; color:#6d28d9; border-color:#c4b5fd; }
+  .lpc-btn.ld   { background:#e8f2ff; color:#0761d1; border-color:#b3cfff; }
+  .lpc-btn.lace { background:var(--yellow-100); color:var(--yellow-700); border-color:#ffd5a0; }
+  .lpc-btn.last { background:var(--yellow-100); color:var(--yellow-700); border-color:#ffd5a0; }
+  .lpc-btn.lblk { background:#f0fdf4; color:#15803d; border-color:#86efac; }
+  .lpc-btn.lr3  { background:#f0fdf4; color:#15803d; border-color:#86efac; }
+  .lpc-btn.lr2  { background:#eff6ff; color:#1d4ed8; border-color:#93c5fd; }
+  .lpc-btn.lr1  { background:#fefce8; color:#a16207; border-color:#fde047; }
+  .lpc-btn.lr0  { background:var(--red-100); color:var(--red); border-color:#ffb3b3; }
+  .lpc-btn.lmore{ background:var(--canvas); color:var(--mute); border-color:var(--hairline); }
+  .lpc-divider  { font-size:9px; font-weight:700; color:var(--mute); text-transform:uppercase; letter-spacing:.08em; margin:6px 0 3px; width:100%; font-family:'Geist Mono',monospace; }
+  .lpc-bench-section { border-top:1px solid var(--hairline); padding-top:8px; margin-top:4px; }
+  .lpc-bench-header { font-size:9px; font-weight:700; color:var(--mute); text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; font-family:'Geist Mono',monospace; }
+
   .bench-player {
     background:var(--elevated); border:1px solid var(--hairline); border-radius:100px;
     padding:5px 12px; font-size:12px; font-weight:500; cursor:pointer;
@@ -2885,7 +2924,9 @@ function renderLiveTracker() {
   }).join('');
 
   el.innerHTML = `
-  <div style="max-width:560px;margin:0 auto">
+  <div class="live-desktop-wrap">
+  <div class="live-sidebar" id="sidebarLeft"></div>
+  <div class="live-center">
 
   <!-- Score block -->
   <div class="live-score-block">
@@ -2957,11 +2998,14 @@ function renderLiveTracker() {
     </div>
   </details>
 
-  </div>`;
+  </div><!-- .live-center -->
+  <div class="live-sidebar" id="sidebarRight"></div>
+  </div><!-- .live-desktop-wrap -->`;
 
   renderCourt();
   renderBench();
   renderLiveStatsTable();
+  renderStatSidebars();
 }
 
 function renderCourt() {
@@ -3052,6 +3096,129 @@ function renderLiveStatsTable() {
       <td>${s.passAttempts>0?(s.passTotal/s.passAttempts).toFixed(2):'—'}</td>
     </tr>`;
   }).join('');
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+//  DESKTOP STAT SIDEBARS
+// ═══════════════════════════════════════════════════════════════
+function playerStatCard(p, onCourt) {
+  if (!p) return '';
+  const s = match.playerStats[p.id] || blankPlayerStats();
+  const pid = p.id;
+  const isLibero = hasPos(p,'Libero') || hasPos(p,'Defensive Specialist');
+  const isSetter = hasPos(p,'Setter');
+  const isMiddle = hasPos(p,'Middle Blocker');
+  const isOH     = hasPos(p,'Outside Hitter') || hasPos(p,'Right Side');
+
+  // ── stat counts ──────────────────────────────────────────────
+  let counts = '';
+  if (isLibero) {
+    const pr = s.passAttempts > 0 ? (s.passTotal/s.passAttempts).toFixed(1) : '—';
+    counts = `
+      <div class="lpc-count"><div class="lpc-count-val">${s.digs}</div><div class="lpc-count-lbl">Dig</div></div>
+      <div class="lpc-count"><div class="lpc-count-val">${pr}</div><div class="lpc-count-lbl">Pass</div></div>
+      <div class="lpc-count"><div class="lpc-count-val">${s.passAttempts}</div><div class="lpc-count-lbl">Rcv</div></div>
+      <div class="lpc-count"><div class="lpc-count-val">${s.aces}</div><div class="lpc-count-lbl">Ace</div></div>`;
+  } else if (isSetter) {
+    counts = `
+      <div class="lpc-count"><div class="lpc-count-val">${s.assists}</div><div class="lpc-count-lbl">Ast</div></div>
+      <div class="lpc-count"><div class="lpc-count-val">${s.assistOpps}</div><div class="lpc-count-lbl">Att</div></div>
+      <div class="lpc-count"><div class="lpc-count-val">${s.digs}</div><div class="lpc-count-lbl">Dig</div></div>
+      <div class="lpc-count"><div class="lpc-count-val">${s.aces}</div><div class="lpc-count-lbl">Ace</div></div>`;
+  } else {
+    const hp = s.attempts > 0 ? ((s.kills - s.errors)/s.attempts) : null;
+    counts = `
+      <div class="lpc-count"><div class="lpc-count-val">${s.kills}</div><div class="lpc-count-lbl">K</div></div>
+      <div class="lpc-count"><div class="lpc-count-val">${s.errors}</div><div class="lpc-count-lbl">E</div></div>
+      <div class="lpc-count"><div class="lpc-count-val">${s.attempts}</div><div class="lpc-count-lbl">TA</div></div>
+      <div class="lpc-count"><div class="lpc-count-val">${hp!==null?(hp>=0?'+':'')+hp.toFixed(2):'—'}</div><div class="lpc-count-lbl">Eff</div></div>
+      <div class="lpc-count"><div class="lpc-count-val">${s.digs}</div><div class="lpc-count-lbl">D</div></div>`;
+  }
+
+  // ── action buttons ───────────────────────────────────────────
+  let btns = '';
+  if (isLibero) {
+    btns = `
+      <span class="lpc-divider">Pass</span>
+      <button class="lpc-btn lr3" onclick="quickStat('${pid}','pass3')">3</button>
+      <button class="lpc-btn lr2" onclick="quickStat('${pid}','pass2')">2</button>
+      <button class="lpc-btn lr1" onclick="quickStat('${pid}','pass1')">1</button>
+      <button class="lpc-btn lr0" onclick="quickStat('${pid}','pass0')">0</button>
+      <span class="lpc-divider">Defense</span>
+      <button class="lpc-btn ld" onclick="quickStat('${pid}','dig')">Dig</button>
+      <button class="lpc-btn lace" onclick="quickStat('${pid}','ace')">Ace</button>
+      <button class="lpc-btn lmore" onclick="openStatEntry('${pid}',-1)">More</button>`;
+  } else if (isSetter) {
+    btns = `
+      <span class="lpc-divider">Setting</span>
+      <button class="lpc-btn last" onclick="quickStat('${pid}','assist')">Ast</button>
+      <button class="lpc-btn latt" onclick="quickStat('${pid}','assistOpp')">Att</button>
+      <button class="lpc-btn le" onclick="quickStat('${pid}','ballHandlingError')">BHE</button>
+      <span class="lpc-divider">Defense / Serve</span>
+      <button class="lpc-btn ld" onclick="quickStat('${pid}','dig')">Dig</button>
+      <button class="lpc-btn lace" onclick="quickStat('${pid}','ace')">Ace</button>
+      <button class="lpc-btn lmore" onclick="openStatEntry('${pid}',-1)">More</button>`;
+  } else if (isMiddle) {
+    btns = `
+      <span class="lpc-divider">Attack</span>
+      <button class="lpc-btn lk"   onclick="quickStat('${pid}','kill')">Kill</button>
+      <button class="lpc-btn le"   onclick="quickStat('${pid}','attackError')">Err</button>
+      <button class="lpc-btn latt" onclick="quickStat('${pid}','attempt')">Att</button>
+      <span class="lpc-divider">Block / Def</span>
+      <button class="lpc-btn lblk" onclick="quickStat('${pid}','soloBlock')">BS</button>
+      <button class="lpc-btn lblk" onclick="quickStat('${pid}','blockAssist')">BA</button>
+      <button class="lpc-btn ld"   onclick="quickStat('${pid}','dig')">Dig</button>
+      <button class="lpc-btn lmore" onclick="openStatEntry('${pid}',-1)">More</button>`;
+  } else {
+    // OH, Opposite, RS
+    btns = `
+      <span class="lpc-divider">Attack</span>
+      <button class="lpc-btn lk"   onclick="quickStat('${pid}','kill')">Kill</button>
+      <button class="lpc-btn le"   onclick="quickStat('${pid}','attackError')">Err</button>
+      <button class="lpc-btn latt" onclick="quickStat('${pid}','attempt')">Att</button>
+      ${isOH ? `
+      <span class="lpc-divider">Pass</span>
+      <button class="lpc-btn lr3" onclick="quickStat('${pid}','pass3')">3</button>
+      <button class="lpc-btn lr2" onclick="quickStat('${pid}','pass2')">2</button>
+      <button class="lpc-btn lr1" onclick="quickStat('${pid}','pass1')">1</button>` : ''}
+      <span class="lpc-divider">Defense / Serve</span>
+      <button class="lpc-btn ld"   onclick="quickStat('${pid}','dig')">Dig</button>
+      <button class="lpc-btn lace" onclick="quickStat('${pid}','ace')">Ace</button>
+      <button class="lpc-btn lmore" onclick="openStatEntry('${pid}',-1)">More</button>`;
+  }
+
+  return `<div class="lpc${isLibero?' lpc-libero':''}${!onCourt?' lpc-bench':''}">
+    <div class="lpc-head">
+      <span class="lpc-num">#${p.number||'?'}</span>
+      <span class="lpc-name">${p.name}</span>
+      <span class="lpc-pos-badge">${posDisplay(p)}</span>
+    </div>
+    <div class="lpc-counts">${counts}</div>
+    <div class="lpc-btns">${btns}</div>
+  </div>`;
+}
+
+function renderStatSidebars() {
+  const left  = document.getElementById('sidebarLeft');
+  const right = document.getElementById('sidebarRight');
+  if (!left || !right) return;
+
+  // Front row: positions P4,P3,P2 → lineup indices (3+r)%6, (2+r)%6, (1+r)%6
+  // Back row:  positions P5,P6,P1 → lineup indices (4+r)%6, (5+r)%6, r%6
+  const r = match.rotation;
+  const frontIdx = [(3+r)%6, (2+r)%6, (1+r)%6];
+  const backIdx  = [(4+r)%6, (5+r)%6, r%6];
+  const frontPlayers = frontIdx.map(i => match.lineup[i]).filter(Boolean);
+  const backPlayers  = backIdx.map(i => match.lineup[i]).filter(Boolean);
+  const benchPlayers = [...match.bench, ...(match.libero && match.liberoSubPosition===null ? [match.libero] : [])];
+
+  left.innerHTML  = '<div style="font-size:9px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-family:\'Geist Mono\',monospace">Front Row</div>'
+    + frontPlayers.map(p => playerStatCard(p, true)).join('');
+
+  right.innerHTML = '<div style="font-size:9px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-family:\'Geist Mono\',monospace">Back Row</div>'
+    + backPlayers.map(p => playerStatCard(p, true)).join('')
+    + (benchPlayers.length ? `<div class="lpc-bench-section"><div class="lpc-bench-header">Bench</div>${benchPlayers.map(p => playerStatCard(p, false)).join('')}</div>` : '');
 }
 
 // ═══════════════════════════════════════════════════════════════
