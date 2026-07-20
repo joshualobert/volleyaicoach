@@ -3441,7 +3441,7 @@ function scorePoint(side, noRender) {
     saveMatchLocal();
     renderLiveTracker();
     if (setOver) openEndSetModal();
-    else openRallyStrip(side);
+    else if (side === 'us') openRallyStrip(side);
   }
   return setOver;
 }
