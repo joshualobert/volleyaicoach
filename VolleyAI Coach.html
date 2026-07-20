@@ -328,12 +328,14 @@
   .bench-strip { display:flex; gap:6px; flex-wrap:wrap; }
 
   /* ── Desktop live stat sidebars ─────────────────────────── */
-  .live-desktop-wrap { display:flex; gap:10px; max-width:1440px; margin:0 auto; padding:0 8px; align-items:flex-start; }
-  .live-sidebar { display:none; flex-direction:column; gap:8px; width:230px; flex-shrink:0; position:sticky; top:0; }
-  .live-center { flex:1; min-width:0; }
+  .live-desktop-wrap { display:flex; gap:12px; width:100%; padding:0 12px; align-items:flex-start; box-sizing:border-box; }
+  .live-sidebar { display:none; flex-direction:column; gap:8px; flex:1; min-width:0; position:sticky; top:0; max-height:100vh; overflow-y:auto; }
+  .live-center { flex:0 0 520px; min-width:0; }
   @media(min-width:900px) {
     .live-sidebar { display:flex; }
-    .live-center { max-width:560px; }
+  }
+  @media(min-width:1400px) {
+    .live-center { flex:0 0 580px; }
   }
   .lpc { background:var(--elevated); border:1px solid var(--hairline); border-radius:12px; padding:10px 12px; }
   .lpc.lpc-bench { opacity:.6; }
@@ -3204,21 +3206,27 @@ function renderStatSidebars() {
   const right = document.getElementById('sidebarRight');
   if (!left || !right) return;
 
-  // Front row: positions P4,P3,P2 → lineup indices (3+r)%6, (2+r)%6, (1+r)%6
-  // Back row:  positions P5,P6,P1 → lineup indices (4+r)%6, (5+r)%6, r%6
+  // Use actual current lineup (libero already swapped in at liberoSubPosition)
+  // Front row: P4,P3,P2 → lineup indices (3+r)%6, (2+r)%6, (1+r)%6
+  // Back row:  P5,P6,P1 → lineup indices (4+r)%6, (5+r)%6, r%6
   const r = match.rotation;
-  const frontIdx = [(3+r)%6, (2+r)%6, (1+r)%6];
-  const backIdx  = [(4+r)%6, (5+r)%6, r%6];
+  const frontIdx  = [(3+r)%6, (2+r)%6, (1+r)%6];
+  const backIdx   = [(4+r)%6, (5+r)%6, r%6];
   const frontPlayers = frontIdx.map(i => match.lineup[i]).filter(Boolean);
   const backPlayers  = backIdx.map(i => match.lineup[i]).filter(Boolean);
-  const benchPlayers = [...match.bench, ...(match.libero && match.liberoSubPosition===null ? [match.libero] : [])];
 
-  left.innerHTML  = '<div style="font-size:9px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-family:\'Geist Mono\',monospace">Front Row</div>'
-    + frontPlayers.map(p => playerStatCard(p, true)).join('');
+  // Bench: non-starters + libero when off court
+  const onCourtIds = new Set(match.lineup.filter(Boolean).map(p => p.id));
+  const benchPlayers = [
+    ...(match.libero && !onCourtIds.has(match.libero.id) ? [match.libero] : []),
+    ...match.bench
+  ];
 
-  right.innerHTML = '<div style="font-size:9px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px;font-family:\'Geist Mono\',monospace">Back Row</div>'
-    + backPlayers.map(p => playerStatCard(p, true)).join('')
-    + (benchPlayers.length ? `<div class="lpc-bench-section"><div class="lpc-bench-header">Bench</div>${benchPlayers.map(p => playerStatCard(p, false)).join('')}</div>` : '');
+  const label = txt => `<div style="font-size:9px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;font-family:'Geist Mono',monospace">${txt}</div>`;
+
+  left.innerHTML  = label('Front Row') + frontPlayers.map(p => playerStatCard(p, true)).join('');
+  right.innerHTML = label('Back Row')  + backPlayers.map(p => playerStatCard(p, true)).join('')
+    + (benchPlayers.length ? `<div class="lpc-bench-section">${label('Bench')}${benchPlayers.map(p => playerStatCard(p, false)).join('')}</div>` : '');
 }
 
 // ═══════════════════════════════════════════════════════════════
