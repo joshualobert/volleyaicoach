@@ -367,6 +367,41 @@
   .lpc-bench-section { border-top:1px solid var(--hairline); padding-top:8px; margin-top:4px; }
   .lpc-bench-header { font-size:9px; font-weight:700; color:var(--mute); text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px; font-family:'Geist Mono',monospace; }
 
+  /* ── Full-court big player tiles ─────────────────────────── */
+  .live-full-wrap { display:flex; flex-direction:column; gap:8px; }
+  .live-court-full { display:flex; flex-direction:column; gap:6px; }
+  .live-court-row  { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .lbt { background:var(--elevated); border:1px solid var(--hairline); border-radius:14px; padding:14px 16px; display:flex; flex-direction:column; gap:8px; }
+  .lbt.lbt-serving { background:var(--green-100); border-color:#a8e6c0; }
+  .lbt.lbt-libero  { background:rgba(249,115,22,.04); border-color:rgba(249,115,22,.3); }
+  .lbt-head { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .lbt-num  { font-size:12px; font-weight:600; color:var(--mute); font-family:'Geist Mono',monospace; }
+  .lbt-name { font-size:17px; font-weight:700; color:var(--ink); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .lbt-pos  { font-size:10px; font-weight:700; background:var(--canvas); color:var(--mute); padding:3px 7px; border-radius:5px; font-family:'Geist Mono',monospace; }
+  .lbt-srv  { font-size:9px; font-weight:700; color:var(--green); text-transform:uppercase; letter-spacing:.1em; font-family:'Geist Mono',monospace; background:var(--green-100); padding:2px 6px; border-radius:4px; }
+  .lbt-court-lbl { font-size:10px; color:var(--mute); font-family:'Geist Mono',monospace; }
+  .lbt-counts { display:flex; gap:18px; flex-wrap:wrap; }
+  .lbt-stat { display:flex; flex-direction:column; align-items:center; min-width:28px; }
+  .lbt-stat-val { font-size:24px; font-weight:800; color:var(--ink); line-height:1; font-variant-numeric:tabular-nums; }
+  .lbt-stat-lbl { font-size:9px; color:var(--mute); text-transform:uppercase; letter-spacing:.04em; font-family:'Geist Mono',monospace; margin-top:2px; }
+  .lbt-btns { display:flex; flex-wrap:wrap; gap:5px; }
+  .lbt-section-lbl { font-size:9px; font-weight:700; color:var(--mute); text-transform:uppercase; letter-spacing:.08em; font-family:'Geist Mono',monospace; width:100%; margin-top:2px; }
+  .lbt-btn { font-size:12px; font-weight:700; padding:8px 10px; border-radius:8px; border:1px solid; cursor:pointer; font-family:'Geist Mono',monospace; letter-spacing:.03em; -webkit-tap-highlight-color:transparent; flex:1; min-width:48px; text-align:center; }
+  .lbt-btn:active { opacity:.6; transform:scale(.96); }
+  .lbt-btn.bk    { background:var(--green-100); color:var(--green); border-color:#a8e6c0; }
+  .lbt-btn.be    { background:var(--red-100); color:var(--red); border-color:#ffb3b3; }
+  .lbt-btn.batt  { background:#f5f3ff; color:#6d28d9; border-color:#c4b5fd; }
+  .lbt-btn.bd    { background:#e8f2ff; color:#0761d1; border-color:#b3cfff; }
+  .lbt-btn.bace  { background:var(--yellow-100); color:var(--yellow-700); border-color:#ffd5a0; }
+  .lbt-btn.bast  { background:var(--yellow-100); color:var(--yellow-700); border-color:#ffd5a0; }
+  .lbt-btn.bblk  { background:#f0fdf4; color:#15803d; border-color:#86efac; }
+  .lbt-btn.br3   { background:#f0fdf4; color:#15803d; border-color:#86efac; }
+  .lbt-btn.br2   { background:#eff6ff; color:#1d4ed8; border-color:#93c5fd; }
+  .lbt-btn.br1   { background:#fefce8; color:#a16207; border-color:#fde047; }
+  .lbt-btn.br0   { background:var(--red-100); color:var(--red); border-color:#ffb3b3; }
+  .lbt-btn.bmore { background:var(--canvas); color:var(--mute); border-color:var(--hairline); }
+
+
   .bench-player {
     background:var(--elevated); border:1px solid var(--hairline); border-radius:100px;
     padding:5px 12px; font-size:12px; font-weight:500; cursor:pointer;
@@ -2926,9 +2961,7 @@ function renderLiveTracker() {
   }).join('');
 
   el.innerHTML = `
-  <div class="live-desktop-wrap">
-  <div class="live-sidebar" id="sidebarLeft"></div>
-  <div class="live-center">
+  <div class="live-full-wrap">
 
   <!-- Score block -->
   <div class="live-score-block">
@@ -2945,9 +2978,7 @@ function renderLiveTracker() {
     </div>
     <div class="live-status-row">
       <span>Set ${setNum} · ${getRotationLabel()}</span>
-      <span class="live-serving-pill">
-        ${match.isServing!==false?'Serving':'Receiving'}
-      </span>
+      <span class="live-serving-pill">${match.isServing!==false?'Serving':'Receiving'}</span>
       <span>S:${match.servePoints||0} R:${match.receivePoints||0} SO:${sideOutPct(match.sets)}%</span>
       ${setBadges}
       <span class="set-badge" style="background:rgba(255,255,255,.2)">${match.score.us}-${match.score.them} sets</span>
@@ -2955,7 +2986,7 @@ function renderLiveTracker() {
   </div>
 
   <!-- Point buttons -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
     <button class="live-point-btn us" onclick="scorePoint('us')">▲ Our Point</button>
     <button class="live-point-btn them" onclick="scorePoint('them')">▲ Their Point</button>
   </div>
@@ -2974,40 +3005,40 @@ function renderLiveTracker() {
     </div>
   </div>
 
-  <!-- Court -->
-  <div style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Court — tap player to record stat</div>
-  <div class="court-container" style="margin-bottom:12px">
-    <div id="courtContainer"></div>
+  <!-- Full-court player grid -->
+  <div class="live-court-full">
+    <div class="court-net">— NET —</div>
+    <div class="live-court-row">
+      ${bigPlayerTile(4)}${bigPlayerTile(3)}${bigPlayerTile(2)}
+    </div>
+    <div class="live-court-row" style="margin-top:6px">
+      ${bigPlayerTile(5)}${bigPlayerTile(6)}${bigPlayerTile(1)}
+    </div>
   </div>
 
   <!-- Bench -->
-  <div style="font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Bench</div>
-  <div class="bench-strip" id="benchStrip" style="margin-bottom:16px"></div>
+  <div>
+    <div style="font-size:10px;font-weight:700;color:var(--mute);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;font-family:'Geist Mono',monospace">Bench</div>
+    <div class="bench-strip" id="benchStrip"></div>
+  </div>
 
-  <!-- Stats (collapsible) -->
-  <details style="margin-bottom:16px">
+  <!-- Stats collapsible -->
+  <details style="margin-bottom:8px">
     <summary style="cursor:pointer;padding:10px 14px;background:var(--gray-50);border-radius:10px;border:1px solid var(--gray-200);font-size:12px;font-weight:700;color:var(--body);list-style:none;display:flex;align-items:center;justify-content:space-between;-webkit-tap-highlight-color:transparent">
       Set ${setNum} Stats <span style="opacity:.5;font-size:10px">tap to view ▾</span>
     </summary>
     <div style="overflow-x:auto;margin-top:8px;border-radius:10px;border:1px solid var(--gray-200);background:var(--elevated)">
       <table class="live-stats-table" id="liveStatsTable">
-        <thead><tr>
-          <th>Player</th><th>K</th><th>E</th><th>TA</th><th>Hit%</th>
-          <th>Blk</th><th>SA</th><th>SE</th><th>Dig</th><th>Ast</th><th>Pass</th>
-        </tr></thead>
+        <thead><tr><th>Player</th><th>K</th><th>E</th><th>TA</th><th>Hit%</th><th>Blk</th><th>SA</th><th>SE</th><th>Dig</th><th>Ast</th><th>Pass</th></tr></thead>
         <tbody id="liveStatsBody"></tbody>
       </table>
     </div>
   </details>
 
-  </div><!-- .live-center -->
-  <div class="live-sidebar" id="sidebarRight"></div>
-  </div><!-- .live-desktop-wrap -->`;
+  </div>`;
 
-  renderCourt();
   renderBench();
   renderLiveStatsTable();
-  renderStatSidebars();
 }
 
 function renderCourt() {
@@ -3102,7 +3133,113 @@ function renderLiveStatsTable() {
 
 
 // ═══════════════════════════════════════════════════════════════
-//  DESKTOP STAT SIDEBARS
+//  BIG COURT TILES
+// ═══════════════════════════════════════════════════════════════
+function bigPlayerTile(posNum) {
+  const lineupIdx = (posNum - 1 + match.rotation) % 6;
+  const player = match.lineup[lineupIdx];
+  const isServing = posNum === 1;
+  const courtLabel = POS_LABELS[posNum];
+
+  if (!player) {
+    return `<div class="lbt"><div class="lbt-head"><span class="lbt-court-lbl">${courtLabel}</span><span style="color:var(--mute);font-size:13px">Empty</span></div></div>`;
+  }
+
+  const pid = player.id;
+  const s = match.playerStats[pid] || blankPlayerStats();
+  const isLibero = hasPos(player,'Libero') || hasPos(player,'Defensive Specialist');
+  const isSetter = hasPos(player,'Setter');
+  const isMiddle = hasPos(player,'Middle Blocker');
+  const isOH     = hasPos(player,'Outside Hitter') || hasPos(player,'Right Side');
+
+  let counts = '';
+  if (isLibero) {
+    const pr = s.passAttempts > 0 ? (s.passTotal/s.passAttempts).toFixed(1) : '—';
+    counts = `
+      <div class="lbt-stat"><div class="lbt-stat-val">${s.digs}</div><div class="lbt-stat-lbl">Dig</div></div>
+      <div class="lbt-stat"><div class="lbt-stat-val">${pr}</div><div class="lbt-stat-lbl">Pass</div></div>
+      <div class="lbt-stat"><div class="lbt-stat-val">${s.passAttempts}</div><div class="lbt-stat-lbl">Rcv</div></div>
+      <div class="lbt-stat"><div class="lbt-stat-val">${s.aces}</div><div class="lbt-stat-lbl">Ace</div></div>`;
+  } else if (isSetter) {
+    counts = `
+      <div class="lbt-stat"><div class="lbt-stat-val">${s.assists}</div><div class="lbt-stat-lbl">Ast</div></div>
+      <div class="lbt-stat"><div class="lbt-stat-val">${s.assistOpps}</div><div class="lbt-stat-lbl">Att</div></div>
+      <div class="lbt-stat"><div class="lbt-stat-val">${s.digs}</div><div class="lbt-stat-lbl">Dig</div></div>
+      <div class="lbt-stat"><div class="lbt-stat-val">${s.aces}</div><div class="lbt-stat-lbl">Ace</div></div>`;
+  } else {
+    const hp = s.attempts > 0 ? ((s.kills - s.errors)/s.attempts) : null;
+    counts = `
+      <div class="lbt-stat"><div class="lbt-stat-val">${s.kills}</div><div class="lbt-stat-lbl">K</div></div>
+      <div class="lbt-stat"><div class="lbt-stat-val">${s.errors}</div><div class="lbt-stat-lbl">E</div></div>
+      <div class="lbt-stat"><div class="lbt-stat-val">${s.attempts}</div><div class="lbt-stat-lbl">TA</div></div>
+      <div class="lbt-stat"><div class="lbt-stat-val">${hp!==null?(hp>=0?'+':'')+hp.toFixed(2):'—'}</div><div class="lbt-stat-lbl">Eff</div></div>
+      <div class="lbt-stat"><div class="lbt-stat-val">${s.digs}</div><div class="lbt-stat-lbl">D</div></div>`;
+  }
+
+  let btns = '';
+  if (isLibero) {
+    btns = `
+      <span class="lbt-section-lbl">Pass</span>
+      <button class="lbt-btn br3" onclick="quickStat('${pid}','pass3')">3</button>
+      <button class="lbt-btn br2" onclick="quickStat('${pid}','pass2')">2</button>
+      <button class="lbt-btn br1" onclick="quickStat('${pid}','pass1')">1</button>
+      <button class="lbt-btn br0" onclick="quickStat('${pid}','pass0')">0</button>
+      <span class="lbt-section-lbl">Defense</span>
+      <button class="lbt-btn bd"   onclick="quickStat('${pid}','dig')">Dig</button>
+      <button class="lbt-btn bace" onclick="quickStat('${pid}','ace')">Ace</button>
+      <button class="lbt-btn bmore" onclick="openStatEntry('${pid}',-1)">More</button>`;
+  } else if (isSetter) {
+    btns = `
+      <span class="lbt-section-lbl">Setting</span>
+      <button class="lbt-btn bast" onclick="quickStat('${pid}','assist')">Ast</button>
+      <button class="lbt-btn batt" onclick="quickStat('${pid}','assistOpp')">Att</button>
+      <button class="lbt-btn be"   onclick="quickStat('${pid}','ballHandlingError')">BHE</button>
+      <span class="lbt-section-lbl">Defense / Serve</span>
+      <button class="lbt-btn bd"   onclick="quickStat('${pid}','dig')">Dig</button>
+      <button class="lbt-btn bace" onclick="quickStat('${pid}','ace')">Ace</button>
+      <button class="lbt-btn bmore" onclick="openStatEntry('${pid}',-1)">More</button>`;
+  } else if (isMiddle) {
+    btns = `
+      <span class="lbt-section-lbl">Attack</span>
+      <button class="lbt-btn bk"   onclick="quickStat('${pid}','kill')">Kill</button>
+      <button class="lbt-btn be"   onclick="quickStat('${pid}','attackError')">Error</button>
+      <button class="lbt-btn batt" onclick="quickStat('${pid}','attempt')">Att</button>
+      <span class="lbt-section-lbl">Block / Defense</span>
+      <button class="lbt-btn bblk" onclick="quickStat('${pid}','soloBlock')">Block</button>
+      <button class="lbt-btn bblk" onclick="quickStat('${pid}','blockAssist')">BA</button>
+      <button class="lbt-btn bd"   onclick="quickStat('${pid}','dig')">Dig</button>
+      <button class="lbt-btn bmore" onclick="openStatEntry('${pid}',-1)">More</button>`;
+  } else {
+    btns = `
+      <span class="lbt-section-lbl">Attack</span>
+      <button class="lbt-btn bk"   onclick="quickStat('${pid}','kill')">Kill</button>
+      <button class="lbt-btn be"   onclick="quickStat('${pid}','attackError')">Error</button>
+      <button class="lbt-btn batt" onclick="quickStat('${pid}','attempt')">Att</button>
+      ${isOH ? `<span class="lbt-section-lbl">Pass</span>
+      <button class="lbt-btn br3" onclick="quickStat('${pid}','pass3')">3</button>
+      <button class="lbt-btn br2" onclick="quickStat('${pid}','pass2')">2</button>
+      <button class="lbt-btn br1" onclick="quickStat('${pid}','pass1')">1</button>` : ''}
+      <span class="lbt-section-lbl">Defense / Serve</span>
+      <button class="lbt-btn bd"   onclick="quickStat('${pid}','dig')">Dig</button>
+      <button class="lbt-btn bace" onclick="quickStat('${pid}','ace')">Ace</button>
+      <button class="lbt-btn bmore" onclick="openStatEntry('${pid}',-1)">More</button>`;
+  }
+
+  return `<div class="lbt${isLibero?' lbt-libero':''}${isServing?' lbt-serving':''}">
+    <div class="lbt-head">
+      <span class="lbt-num">#${player.number||'?'}</span>
+      <span class="lbt-name">${player.name}</span>
+      <span class="lbt-pos">${posDisplay(player)}</span>
+      ${isServing ? '<span class="lbt-srv">SRV</span>' : ''}
+      <span class="lbt-court-lbl">${courtLabel}</span>
+    </div>
+    <div class="lbt-counts">${counts}</div>
+    <div class="lbt-btns">${btns}</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DESKTOP STAT SIDEBARS (kept for reference)
 // ═══════════════════════════════════════════════════════════════
 function playerStatCard(p, onCourt) {
   if (!p) return '';
