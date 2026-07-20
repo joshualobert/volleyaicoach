@@ -3090,13 +3090,25 @@ function scorePoint(side, noRender) {
   set[side]++;
   const ts = Date.now();
 
-  // track serve/receive counts and flip state
+  // track serve/receive counts, auto-rotate on side-out
+  const rotationBefore = match.rotation;
   if (side === 'us') {
-    if (match.isServing) match.servePoints++;
-    else { match.receivePoints++; match.isServing = true; } // side-out, now serving
+    if (match.isServing) {
+      match.servePoints++;
+    } else {
+      // side-out: we win serve back — rotate before serving
+      match.receivePoints++;
+      match.rotation = (match.rotation + 1) % 6;
+      match.sets[match.currentSet].rotationLog.push({ rotation: match.rotation, time: ts });
+      applyRotationSwaps();
+      match.isServing = true;
+    }
   } else {
-    if (!match.isServing) ; // they score while we receive — stay receiving
-    else match.isServing = false; // they score while we serve — now receiving
+    if (!match.isServing) {
+      // they score while we receive — stay receiving
+    } else {
+      match.isServing = false; // they score while we serve — now receiving
+    }
   }
 
   set.rallies.push({ side, wasServing: servingBefore, rotation: match.rotation, timestamp: ts });
@@ -3104,7 +3116,7 @@ function scorePoint(side, noRender) {
   // push to undo stack for standalone score presses
   if (!noRender) {
     if (!match.undoStack) match.undoStack = [];
-    match.undoStack.push({ kind:'score', side, scoreBefore, servingBefore, servePointsBefore, receivePointsBefore, setIdx: match.currentSet, timestamp: ts });
+    match.undoStack.push({ kind:'score', side, scoreBefore, servingBefore, servePointsBefore, receivePointsBefore, rotationBefore, setIdx: match.currentSet, timestamp: ts });
   }
 
   // check set win
@@ -3156,6 +3168,11 @@ function undoLastRally() {
     match.isServing     = last.servingBefore;
     match.servePoints   = last.servePointsBefore;
     match.receivePoints = last.receivePointsBefore;
+    if (last.rotationBefore !== undefined && last.rotationBefore !== match.rotation) {
+      match.rotation = last.rotationBefore;
+      match.sets[last.setIdx].rotationLog.pop();
+      applyRotationSwaps();
+    }
     showToast('↩ Undid: point for ' + last.side);
 
   } else if (last.kind === 'sub') {
