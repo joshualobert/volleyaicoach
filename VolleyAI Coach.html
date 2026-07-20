@@ -2905,7 +2905,7 @@ function renderLiveTracker() {
       <span class="live-serving-pill">
         ${match.isServing!==false?'Serving':'Receiving'}
       </span>
-      <span>S:${match.servePoints||0} R:${match.receivePoints||0}</span>
+      <span>S:${match.servePoints||0} R:${match.receivePoints||0} SO:${sideOutPct(match.sets)}%</span>
       ${setBadges}
       <span class="set-badge" style="background:rgba(255,255,255,.2)">${match.score.us}-${match.score.them} sets</span>
     </div>
@@ -3055,6 +3055,29 @@ function renderLiveStatsTable() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+//  SIDE-OUT HELPERS
+// ═══════════════════════════════════════════════════════════════
+function sideOutPct(sets) {
+  let opp = 0, won = 0;
+  (sets || []).forEach(s => (s.rallies || []).forEach(r => {
+    if (!r.wasServing) { opp++; if (r.side === 'us') won++; }
+  }));
+  return opp === 0 ? '—' : Math.round(won / opp * 100);
+}
+
+function sideOutByRotation(sets) {
+  // returns array of 6: [{opp, won}] indexed by rotation 0-5
+  const rows = Array.from({length:6}, () => ({ opp:0, won:0 }));
+  (sets || []).forEach(s => (s.rallies || []).forEach(r => {
+    if (!r.wasServing && r.rotation != null) {
+      rows[r.rotation % 6].opp++;
+      if (r.side === 'us') rows[r.rotation % 6].won++;
+    }
+  }));
+  return rows;
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  SCORING
 // ═══════════════════════════════════════════════════════════════
 function scorePoint(side, noRender) {
@@ -3076,7 +3099,7 @@ function scorePoint(side, noRender) {
     else match.isServing = false; // they score while we serve — now receiving
   }
 
-  set.rallies.push({ side, wasServing: servingBefore, timestamp: ts });
+  set.rallies.push({ side, wasServing: servingBefore, rotation: match.rotation, timestamp: ts });
 
   // push to undo stack for standalone score presses
   if (!noRender) {
@@ -3653,7 +3676,7 @@ async function renderMatchHistory() {
         </div>
       </div>
       <div style="padding:10px 18px;border-top:1px solid var(--gray-100);display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-outline btn-sm" onclick="showMatchDetail('${m.id}')">View Stats</button>
+        <button class="btn btn-primary btn-sm" onclick="showMatchDetail('${m.id}')">Full Stat Sheet</button>
         ${!m.aiAnalysis && m.status==='ended'
           ? `<button class="btn btn-primary btn-sm" onclick="generateMatchAnalysis('${m.id}')">AI Analysis + Practice Plan</button>`
           : m.aiAnalysis ? `<button class="btn btn-outline btn-sm" onclick="showMatchDetail('${m.id}')">View AI Report</button>` : ''}
@@ -3769,7 +3792,28 @@ function showMatchDetail(matchId) {
               ${d.triggeringStat?`<div class="trigger">Triggered by: ${d.triggeringStat}</div>`:''}
             </div></div>`).join('')}
         </div>` : ''}` : ''}
-    <div class="section-divider">Player Stats</div>
+    <div class="section-divider">Side-Out %</div>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+      <div style="background:var(--canvas);border:1px solid var(--hairline);border-radius:10px;padding:12px 20px;text-align:center;min-width:100px">
+        <div style="font-size:28px;font-weight:800;color:var(--ink)">${sideOutPct(m.sets)}%</div>
+        <div style="font-size:11px;color:var(--mute);margin-top:2px">Overall</div>
+      </div>
+      <div style="flex:1;min-width:220px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr>
+            ${[1,2,3,4,5,6].map(n=>`<th style="text-align:center;padding:4px 6px;color:var(--mute);font-weight:600">R${n}</th>`).join('')}
+          </tr></thead>
+          <tbody><tr>
+            ${sideOutByRotation(m.sets).map(r => {
+              const pct = r.opp === 0 ? '—' : Math.round(r.won/r.opp*100)+'%';
+              const color = r.opp === 0 ? 'var(--mute)' : r.won/r.opp >= 0.6 ? 'var(--green)' : r.won/r.opp >= 0.4 ? 'var(--ink)' : 'var(--red)';
+              return `<td style="text-align:center;padding:6px;font-weight:700;color:${color}">${pct}<div style="font-size:9px;color:var(--mute);font-weight:400">${r.opp} opp</div></td>`;
+            }).join('')}
+          </tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="section-divider">Full Stat Sheet</div>
     <div style="overflow-x:auto">
       <table class="live-stats-table">
         <thead><tr><th>Player</th><th>K</th><th>E</th><th>TA</th><th>Hit%</th><th>BS</th><th>BA</th><th>SA</th><th>SE</th><th>Digs</th><th>Ast</th><th>Pass</th></tr></thead>
